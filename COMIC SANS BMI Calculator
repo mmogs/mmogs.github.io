@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BMI Calculator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="card">
+  <h2>BMI Calculator</h2>
+
+  <input type="text" id="feet" placeholder="Feet">
+  <input type="text" id="inches" placeholder="Inches">
+  <input type="text" id="weight" placeholder="Weight (lbs)">
+
+  <p id="result"></p>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
