@@ -3,11 +3,13 @@ body {
   text-align: center;
   margin-top: 50px;
   background: #f4f4f4;
+  color: orange;
 }
 
 
 .text {
   font-family: "Comic Sans MS", "Comic Sans", cursive;
+  color: orange;
 }
 
 input {
