@@ -16,7 +16,17 @@ input {
   margin: 5px 0;
   font-size: 16px;
 }
-
+.inputs-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px; /* space between inputs */
+  margin-bottom: 20px;
+}
+input {
+  padding: 8px;
+  font-size: 16px;
+  width: 100px;
+}
 #result {
   margin-top: 15px;
   font-weight: bold;
