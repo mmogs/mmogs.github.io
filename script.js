@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const minProtein = weight * 0.7;
     const maxProtein = weight * 1.0;
 
-    const proteinMessage = `Protein for muscle growth: ${minProtein.toFixed(0)}–${maxProtein.toFixed(0)}g/day`;
+    const proteinMessage = `Protein for optimal muscle growth: ${minProtein.toFixed(0)}–${maxProtein.toFixed(0)}g/day`;
     const totalInches = (feet * 12) + inches;
 
     if (totalInches === 0 || weight === 0) {
