@@ -9,7 +9,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const feet = parseFloat(document.getElementById("feet").value.trim()) || 0;
     const inches = parseFloat(document.getElementById("inches").value.trim()) || 0;
     const weight = parseFloat(document.getElementById("weight").value.trim()) || 0;
+    const minProtein = weight * 0.7;
+    const maxProtein = weight * 1.0;
 
+    const proteinMessage = `Protein for muscle growth: ${minProtein.toFixed(0)}–${maxProtein.toFixed(0)}g/day`;
     const totalInches = (feet * 12) + inches;
 
     if (totalInches === 0 || weight === 0) {
@@ -49,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    document.getElementById("result").innerText = resultText;
+    document.getElementById("result").innerText =
+  resultText + "\n" + proteinMessage;
   }
 });
