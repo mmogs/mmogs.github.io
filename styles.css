@@ -4,7 +4,6 @@ body {
   margin-top: 50px;
  
   background: #f4f4f4;
-  background-image: url(); 
   background-size: cover;      
   background-position: center; 
   background-repeat: no-repeat; 
@@ -26,7 +25,7 @@ input {
 .inputs-row {
   display: flex;
   justify-content: center;
-  gap: 10px; /* space between inputs */
+  gap: 10px;
   margin-bottom: 20px;
 }
 input {
@@ -37,4 +36,8 @@ input {
 #result {
   margin-top: 15px;
   font-weight: bold;
+}
+.food-list {
+  list-style: none;
+  padding: 0;
 }
