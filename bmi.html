@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title class="text">BMI Calculator</title>
+  <link rel="stylesheet" href="styles.css">
+
+<div id="canvas-container"></div>
+</head>
+<body>
+
+<div>
+  <h2>BMI Calculator</h2>
+  <p>This is a website that calculates your Body Mass Index, which uses a persons height and weight to estimate their total body fat and shows if you are at a healthy weight. Since this formula just compares height to weight, and not other factors like gender, muscle mass, or fat distribution, it can be innacurate and you could still be healthy even if it calls you overweight. All information on this website is just a rough estimate, and you should ask your doctor to confirm this information.</p>
+  
+  <div class="inputs-row">
+  <input type="text" id="feet" placeholder="Feet">
+  <input type="text" id="inches" placeholder="Inches">
+  <input type="text" id="weight" placeholder="Weight (lbs)">
+  </div>
+
+  <p id="result"></p>
+</div>
+
+
+<script src="script.js"></script>
+<h2>Extra Stuff</h2>
+<h3>Healthy Foods (estimate of Calories & Protein)</h3>
+<ul class="food-list">
+  <li>Chicken Breast (3.5 oz) : 165 cal, 31g protein</li>
+  <li>Salmon (3.5 oz) : 208 cal, 20g protein</li>
+  <li>Eggs (2 large) : 140 cal, 12g protein</li>
+  <li>Greek Yogurt (1 cup) : 150 cal, 15g protein</li>
+  <li>Oatmeal (1 cup) : 154 cal, 6g protein</li>
+  <li>Brown Rice (1 cup) : 216 cal, 5g protein</li>
+  <li>Broccoli (1 cup) : 55 cal, 4g protein</li>
+  <li>Almonds (1 oz) : 164 cal, 6g protein</li>
+  <li>Cottage Cheese (1 cup) : 206 cal, 28g protein</li>
+  <li>Lentils (1 cup) : 230 cal, 18g protein</li>
+</ul>
+
+<h3>Estimate of Calories Burned (per hour)</h3>
+<ul class="activity-list">
+  <li>Walking (2 mph) : ~200 cal</li>
+  <li>Running (5 mph) : ~480 cal</li>
+  <li>Cycling (moderate) : ~500 cal</li>
+  <li>Swimming (moderate) : ~500 cal</li>
+  <li>Jump Rope : ~700 cal</li>
+  <li>Weightlifting : ~220 cal</li>
+  <li>Basketball : ~600 cal</li>
+  <li>Soccer : ~650 cal</li>
+  <li>Yoga : ~200 cal</li>
+  <li>Hiking : ~430 cal</li>
+</ul>
+
+
+
+
+
+</body>
+</html>
