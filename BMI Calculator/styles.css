@@ -1,0 +1,47 @@
+body {
+  font-family:"Comic Sans MS", "Comic Sans", cursive;
+  text-align: center;
+  margin-top: 50px;
+ 
+  background: #F2F3F4;
+  background-size: cover;      
+  background-position: center; 
+  background-repeat: no-repeat; 
+   
+}
+
+
+.text {
+  font-family: "Comic Sans MS", "Comic Sans", cursive;
+  
+}
+
+input {
+  width: 80%;
+  padding: 8px;
+  margin: 5px 0;
+  font-size: 16px;
+}
+.inputs-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+input {
+  padding: 8px;
+  font-size: 16px;
+  width: 100px;
+}
+#result {
+  margin-top: 15px;
+  font-weight: bold;
+}
+.food-list {
+  list-style: none;
+  padding: 0;
+}
+.activity-list {
+  list-style: none;
+  padding: 0;
+}
