@@ -6,7 +6,7 @@ canvas.height = window.innerHeight;
 
 let gravity = 0.6;
 
-/* Pan (player controlled) */
+/* Pan */
 let pan = {
   x: canvas.width / 2,
   y: canvas.height - 120,
@@ -28,28 +28,60 @@ canvas.addEventListener("mousemove", (e) => {
   pan.x = e.clientX;
 });
 
+/* Buttons */
+const launchBtn = document.getElementById("launchBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+/* Launch burger */
+launchBtn.addEventListener("click", () => {
+  // Give upward + rotational impulse
+  burger.vy = -10;
+  burger.angularVelocity += (Math.random() - 0.5) * 0.3;
+});
+
+/* Reset game */
+resetBtn.addEventListener("click", () => {
+  burger.x = canvas.width / 2;
+  burger.y = 100;
+  burger.vx = 0;
+  burger.vy = 0;
+  burger.angle = 0;
+  burger.angularVelocity = 0;
+});
+
 /* Physics */
 function update() {
-  // Apply gravity
   burger.vy += gravity;
 
-  // Move burger
   burger.x += burger.vx;
   burger.y += burger.vy;
   burger.angle += burger.angularVelocity;
 
-  // --- Ground collision ---
+  /* --- Screen boundaries --- */
+
+  // Left wall
+  if (burger.x < 30) {
+    burger.x = 30;
+    burger.vx *= -0.7;
+  }
+
+  // Right wall
+  if (burger.x > canvas.width - 30) {
+    burger.x = canvas.width - 30;
+    burger.vx *= -0.7;
+  }
+
+  // Ground
   if (burger.y > canvas.height - 40) {
     burger.y = canvas.height - 40;
     burger.vy *= -0.6;
     burger.vx *= 0.8;
     burger.angularVelocity *= 0.8;
 
-    // Add spin from impact
     burger.angularVelocity += burger.vx * 0.02;
   }
 
-  // --- Pan collision ---
+  /* --- Pan collision --- */
   let panTop = pan.y;
 
   if (
@@ -57,20 +89,22 @@ function update() {
     burger.y < panTop + 10 &&
     Math.abs(burger.x - pan.x) < pan.width / 2
   ) {
-    // Place burger on top of pan
     burger.y = panTop - 20;
 
-    // Transfer pan movement into burger motion
     burger.vx = (pan.x - burger.x) * 0.2;
-    burger.vy = -8; // upward flip impulse
+    burger.vy = -8;
 
-    // Add rotation based on horizontal movement
     burger.angularVelocity += (pan.x - burger.x) * 0.05;
   }
 }
 
-/* Draw pan */
+/* Draw pan with handle */
 function drawPan() {
+  // Handle
+  ctx.fillStyle = "dimgray";
+  ctx.fillRect(pan.x - 10, pan.y + 10, 20, 80);
+
+  // Pan base
   ctx.fillStyle = "gray";
   ctx.fillRect(pan.x - pan.width / 2, pan.y, pan.width, 10);
 }
