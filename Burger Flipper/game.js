@@ -1,8 +1,8 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = canvas.clientWidth;
+canvas.height = canvas.clientHeight;
 
 let gravity = 0.6;
 
@@ -10,75 +10,65 @@ let gravity = 0.6;
 let pan = {
   x: canvas.width / 2,
   y: canvas.height - 120,
-  width: 160
+  width: 160,
+  height: 10,
+  lifting: false
 };
 
 /* Burger */
-let burger = {
-  x: canvas.width / 2,
-  y: 100,
-  vx: 0,
-  vy: 0,
-  angle: 0,
-  angularVelocity: 0
-};
+let burger = spawnBurger();
 
-/* Mouse controls pan */
+/* Spawn new burger */
+function spawnBurger() {
+  return {
+    x: Math.random() * canvas.width,
+    y: 50,
+    vx: 0,
+    vy: 0,
+    angle: 0,
+    angularVelocity: 0
+  };
+}
+
+/* Mouse controls */
 canvas.addEventListener("mousemove", (e) => {
   pan.x = e.clientX;
 });
 
-/* Buttons */
-const launchBtn = document.getElementById("launchBtn");
-const resetBtn = document.getElementById("resetBtn");
-
-/* Launch burger */
-launchBtn.addEventListener("click", () => {
-  // Give upward + rotational impulse
-  burger.vy = -10;
-  burger.angularVelocity += (Math.random() - 0.5) * 0.3;
+/* Click raises pan */
+canvas.addEventListener("mousedown", () => {
+  pan.lifting = true;
 });
 
-/* Reset game */
-resetBtn.addEventListener("click", () => {
-  burger.x = canvas.width / 2;
-  burger.y = 100;
-  burger.vx = 0;
-  burger.vy = 0;
-  burger.angle = 0;
-  burger.angularVelocity = 0;
+canvas.addEventListener("mouseup", () => {
+  pan.lifting = false;
 });
 
 /* Physics */
 function update() {
+  // Gravity
   burger.vy += gravity;
 
+  // Movement
   burger.x += burger.vx;
   burger.y += burger.vy;
   burger.angle += burger.angularVelocity;
 
-  /* --- Screen boundaries --- */
-
-  // Left wall
+  /* --- Screen walls --- */
   if (burger.x < 30) {
     burger.x = 30;
     burger.vx *= -0.7;
   }
 
-  // Right wall
   if (burger.x > canvas.width - 30) {
     burger.x = canvas.width - 30;
     burger.vx *= -0.7;
   }
 
-  // Ground
-  if (burger.y > canvas.height - 40) {
-    burger.y = canvas.height - 40;
-    burger.vy *= -0.6;
-    burger.vx *= 0.8;
-    burger.angularVelocity *= 0.8;
-
-    burger.angularVelocity += burger.vx * 0.02;
+  /* --- Bottom reset --- */
+  if (burger.y > canvas.height) {
+    burger = spawnBurger();
+    return;
   }
 
   /* --- Pan collision --- */
@@ -91,22 +81,29 @@ function update() {
   ) {
     burger.y = panTop - 20;
 
-    burger.vx = (pan.x - burger.x) * 0.2;
-    burger.vy = -8;
-
-    burger.angularVelocity += (pan.x - burger.x) * 0.05;
+    // Only apply flip if pan is being lifted (click held)
+    if (pan.lifting) {
+      burger.vy = -10;
+      burger.vx = (burger.x - pan.x) * 0.3;
+      burger.angularVelocity += (burger.x - pan.x) * 0.05;
+    } else {
+      // Gentle landing
+      burger.vy = 0;
+      burger.vx *= 0.9;
+      burger.angularVelocity *= 0.9;
+    }
   }
 }
 
-/* Draw pan with handle */
+/* Draw pan (handle on the side) */
 function drawPan() {
-  // Handle
   ctx.fillStyle = "dimgray";
-  ctx.fillRect(pan.x - 10, pan.y + 10, 20, 80);
 
   // Pan base
-  ctx.fillStyle = "gray";
-  ctx.fillRect(pan.x - pan.width / 2, pan.y, pan.width, 10);
+  ctx.fillRect(pan.x - pan.width / 2, pan.y, pan.width, pan.height);
+
+  // Handle on the side (to the right)
+  ctx.fillRect(pan.x + pan.width / 2, pan.y - 5, 60, 20);
 }
 
 /* Draw burger */
