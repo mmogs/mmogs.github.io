@@ -4,88 +4,78 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+let gravity = 0.6;
+
+/* Pan (player controlled) */
+let pan = {
+  x: canvas.width / 2,
+  y: canvas.height - 120,
+  width: 160
+};
+
+/* Burger */
 let burger = {
   x: canvas.width / 2,
-  y: canvas.height - 200,
+  y: 100,
   vx: 0,
   vy: 0,
   angle: 0,
-  angularVelocity: 0,
-  launched: false
+  angularVelocity: 0
 };
 
-let gravity = 0.5;
-let isAiming = false;
-let startX = 0;
-let startY = 0;
-
-let spatula = {
-  x: canvas.width / 2,
-  y: canvas.height - 100,
-  width: 150
-};
-
-/* Mouse aiming */
-canvas.addEventListener("mousedown", (e) => {
-  if (!burger.launched) {
-    isAiming = true;
-    startX = e.clientX;
-    startY = e.clientY;
-  }
-});
-
-canvas.addEventListener("mouseup", (e) => {
-  if (isAiming) {
-    isAiming = false;
-
-    let dx = e.clientX - startX;
-    let dy = e.clientY - startY;
-
-    // Launch power
-    burger.vx = dx * 0.1;
-    burger.vy = dy * 0.1;
-    burger.angularVelocity = dx * 0.02;
-
-    burger.launched = true;
-  }
+/* Mouse controls pan */
+canvas.addEventListener("mousemove", (e) => {
+  pan.x = e.clientX;
 });
 
 /* Physics */
 function update() {
-  if (burger.launched) {
-    burger.vy += gravity;
+  // Apply gravity
+  burger.vy += gravity;
 
-    burger.x += burger.vx;
-    burger.y += burger.vy;
+  // Move burger
+  burger.x += burger.vx;
+  burger.y += burger.vy;
+  burger.angle += burger.angularVelocity;
 
-    burger.angle += burger.angularVelocity;
-    burger.angularVelocity *= 0.99;
-  } else {
-    // Sit on spatula before launch
-    burger.x = spatula.x;
-    burger.y = spatula.y - 40;
-  }
-
-  // Simple floor collision
+  // --- Ground collision ---
   if (burger.y > canvas.height - 40) {
-    burger.vy *= -0.5;
+    burger.y = canvas.height - 40;
+    burger.vy *= -0.6;
     burger.vx *= 0.8;
     burger.angularVelocity *= 0.8;
-    burger.y = canvas.height - 40;
+
+    // Add spin from impact
+    burger.angularVelocity += burger.vx * 0.02;
+  }
+
+  // --- Pan collision ---
+  let panTop = pan.y;
+
+  if (
+    burger.y + 20 > panTop &&
+    burger.y < panTop + 10 &&
+    Math.abs(burger.x - pan.x) < pan.width / 2
+  ) {
+    // Place burger on top of pan
+    burger.y = panTop - 20;
+
+    // Transfer pan movement into burger motion
+    burger.vx = (pan.x - burger.x) * 0.2;
+    burger.vy = -8; // upward flip impulse
+
+    // Add rotation based on horizontal movement
+    burger.angularVelocity += (pan.x - burger.x) * 0.05;
   }
 }
 
-/* Draw */
-function drawSpatula() {
+/* Draw pan */
+function drawPan() {
   ctx.fillStyle = "gray";
-  ctx.fillRect(
-    spatula.x - spatula.width / 2,
-    spatula.y,
-    spatula.width,
-    10
-  );
+  ctx.fillRect(pan.x - pan.width / 2, pan.y, pan.width, 10);
 }
 
+/* Draw burger */
 function drawBurger() {
   ctx.save();
   ctx.translate(burger.x, burger.y);
@@ -97,49 +87,15 @@ function drawBurger() {
   ctx.restore();
 }
 
-/* Aiming line */
-function drawAimLine(e) {
-  if (!isAiming) return;
-
-  ctx.beginPath();
-  ctx.moveTo(startX, startY);
-  ctx.lineTo(e.clientX, e.clientY);
-  ctx.strokeStyle = "black";
-  ctx.stroke();
-}
-
 /* Loop */
-function loop(e) {
+function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   update();
-  drawSpatula();
+  drawPan();
   drawBurger();
-
-  if (isAiming) drawAimLine(e);
 
   requestAnimationFrame(loop);
 }
 
-canvas.addEventListener("mousemove", (e) => {
-  window.currentMouse = e;
-});
-
-function renderLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  update();
-  drawSpatula();
-  drawBurger();
-
-  if (isAiming && window.currentMouse) {
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(window.currentMouse.clientX, window.currentMouse.clientY);
-    ctx.stroke();
-  }
-
-  requestAnimationFrame(renderLoop);
-}
-
-renderLoop();
+loop();
