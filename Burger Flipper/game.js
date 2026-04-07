@@ -18,10 +18,9 @@ let pan = {
 /* Burger */
 let burger = spawnBurger();
 
-/* Spawn new burger */
 function spawnBurger() {
   return {
-    x: Math.random() * canvas.width,
+    x: canvas.width / 2,
     y: 50,
     vx: 0,
     vy: 0,
@@ -30,12 +29,21 @@ function spawnBurger() {
   };
 }
 
+/* Fix mouse position relative to canvas */
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+}
+
 /* Mouse controls */
 canvas.addEventListener("mousemove", (e) => {
-  pan.x = e.clientX;
+  const pos = getMousePos(e);
+  pan.x = pos.x;
 });
 
-/* Click raises pan */
 canvas.addEventListener("mousedown", () => {
   pan.lifting = true;
 });
@@ -54,7 +62,7 @@ function update() {
   burger.y += burger.vy;
   burger.angle += burger.angularVelocity;
 
-  /* --- Screen walls --- */
+  /* --- Walls --- */
   if (burger.x < 30) {
     burger.x = 30;
     burger.vx *= -0.7;
@@ -74,35 +82,39 @@ function update() {
   /* --- Pan collision --- */
   let panTop = pan.y;
 
-  if (
+  let isAbovePan =
     burger.y + 20 > panTop &&
-    burger.y < panTop + 10 &&
-    Math.abs(burger.x - pan.x) < pan.width / 2
-  ) {
-    burger.y = panTop - 20;
+    burger.y < panTop + 10;
 
-    // Only apply flip if pan is being lifted (click held)
+  let isOverPan =
+    Math.abs(burger.x - pan.x) < pan.width / 2;
+
+  if (isAbovePan && isOverPan) {
+    // Snap burger onto pan (prevents repeated falling)
+    burger.y = panTop - 20;
+    burger.vy = 0;
+
     if (pan.lifting) {
+      // Flip impulse
       burger.vy = -10;
-      burger.vx = (burger.x - pan.x) * 0.3;
+      burger.vx += (burger.x - pan.x) * 0.3;
       burger.angularVelocity += (burger.x - pan.x) * 0.05;
     } else {
-      // Gentle landing
-      burger.vy = 0;
+      // Rest on pan
       burger.vx *= 0.9;
       burger.angularVelocity *= 0.9;
     }
   }
 }
 
-/* Draw pan (handle on the side) */
+/* Draw pan (handle on side) */
 function drawPan() {
   ctx.fillStyle = "dimgray";
 
-  // Pan base
+  // Base
   ctx.fillRect(pan.x - pan.width / 2, pan.y, pan.width, pan.height);
 
-  // Handle on the side (to the right)
+  // Handle (right side)
   ctx.fillRect(pan.x + pan.width / 2, pan.y - 5, 60, 20);
 }
 
