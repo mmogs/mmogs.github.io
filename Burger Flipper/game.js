@@ -8,11 +8,10 @@ let gravity = 0.5;
 let score = 0;
 let canScore = false;
 
-/* Timer for spawn delay */
 let spawnTimer = 0;
-let spawnDelay = 180; // ~3 seconds (60fps)
+let spawnDelay = 180;
 
-/* Pan (NO GRAVITY anymore) */
+/* PAN */
 let pan = {
   x: canvas.width / 2,
   y: canvas.height - 120,
@@ -23,20 +22,20 @@ let pan = {
   vy: 0
 };
 
-/* Burger */
+/* BURGER */
 let burger = spawnBurger();
 
 function spawnBurger() {
   spawnTimer = spawnDelay;
 
   return {
-    x: canvas.width / 2, // ✅ always center
+    x: canvas.width / 2,
     y: 60,
     vx: 0,
     vy: 0,
     angle: 0,
     angularVelocity: 0,
-    active: false // waits before falling
+    active: false
   };
 }
 
@@ -63,22 +62,24 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* Physics */
+/* UPDATE */
 function update() {
-  /* --- PAN (no falling anymore) --- */
+
+  /* --- PAN --- */
   pan.angle += pan.angularVelocity;
   pan.angularVelocity *= 0.9;
 
-  // return to resting angle
+  // Clamp angle (prevents math bugs)
+  pan.angle = Math.max(-0.5, Math.min(0.5, pan.angle));
+
+  // Return to resting angle
   pan.angle += (-0.2 - pan.angle) * 0.1;
 
   /* --- BURGER TIMER --- */
   if (!burger.active) {
     spawnTimer--;
-    if (spawnTimer <= 0) {
-      burger.active = true;
-    }
-    return; // don't update physics yet
+    if (spawnTimer <= 0) burger.active = true;
+    return;
   }
 
   /* --- BURGER PHYSICS --- */
@@ -90,7 +91,13 @@ function update() {
 
   burger.angularVelocity *= 0.995;
 
-  /* Walls */
+  /* Safety check */
+  if (isNaN(burger.x) || isNaN(burger.y)) {
+    burger = spawnBurger();
+    return;
+  }
+
+  /* WALLS */
   if (burger.x < 30) {
     burger.x = 30;
     burger.vx *= -0.7;
@@ -100,7 +107,7 @@ function update() {
     burger.vx *= -0.7;
   }
 
-  /* Bottom reset */
+  /* RESET */
   if (burger.y > canvas.height) {
     score = 0;
     document.getElementById("score").textContent = "Score: 0";
@@ -109,79 +116,50 @@ function update() {
   }
 
   /* --- PAN COLLISION --- */
+  let panLeft = pan.x - pan.width / 2;
+  let panRight = pan.x + pan.width / 2;
+
+  let panSurfaceY =
+    pan.y + Math.sin(pan.angle) * (burger.x - pan.x);
+
+  let touching =
+    burger.y + 20 > panSurfaceY &&
+    burger.y < panSurfaceY + 15 &&
+    burger.x > panLeft &&
+    burger.x < panRight;
+
   if (touching && burger.vy >= 0) {
-  // Snap burger to surface
-  burger.y = panSurfaceY - 20;
+    burger.y = panSurfaceY - 20;
 
-  let slope = Math.sin(pan.angle);
+    let slope = Math.sin(pan.angle);
 
-  // --- SLIDING ---
-  burger.vx += slope * 0.3;
-  burger.vx *= 0.98;
+    /* SLIDE */
+    burger.vx += slope * 0.3;
+    burger.vx *= 0.98;
 
-  // --- STOP BOUNCING ---
-  burger.vy = 0; // 🔥 key fix
+    /* STOP BOUNCE */
+    burger.vy = 0;
 
-  // --- FLIP ONLY WHEN PAN MOVES UP ---
-  if (pan.vy < -2) {
-    burger.vy = -12;
-    burger.vx += slope * 8;
-    burger.angularVelocity += slope * 0.4;
+    /* FLIP */
+    if (pan.vy < -2) {
+      burger.vy = -12;
+      burger.vx += slope * 8;
+      burger.angularVelocity += slope * 0.4;
 
-    canScore = true;
-  } else {
-    // settle rotation
-    burger.angularVelocity *= 0.9;
+      canScore = true;
+    } else {
+      burger.angularVelocity *= 0.9;
 
-    // scoring
-    if (canScore && Math.abs(burger.angularVelocity) < 0.25) {
-      score++;
-      document.getElementById("score").textContent = "Score: " + score;
-      canScore = false;
+      if (canScore && Math.abs(burger.angularVelocity) < 0.25) {
+        score++;
+        document.getElementById("score").textContent = "Score: " + score;
+        canScore = false;
+      }
     }
   }
 }
 
-  if (touching) {
-  // Lock burger onto pan surface
-  burger.y = panSurfaceY - 20;
-
-  // --- NEW: sliding physics ---
-  let slope = Math.sin(pan.angle);
-
-  // gravity pulling along the pan
-  burger.vx += slope * 0.3;
-
-  // slight friction (prevents infinite sliding)
-  burger.vx *= 0.98;
-
-  // keep burger stuck to surface (no bouncing)
-  burger.vy = pan.vy;
-
-  // --- LAUNCH ONLY WHEN FLIPPING ---
-  if (pan.vy < -2) {
-    burger.vy += -12;
-
-    burger.vx += slope * 8;
-
-    burger.angularVelocity += slope * 0.4;
-
-    canScore = true;
-  } else {
-    // slow rotation while resting
-    burger.angularVelocity *= 0.9;
-
-    // scoring when landing clean
-    if (canScore && Math.abs(burger.angularVelocity) < 0.25) {
-      score++;
-      document.getElementById("score").textContent = "Score: " + score;
-      canScore = false;
-    }
-  }
-}
-}
-
-/* Draw pan */
+/* DRAW PAN */
 function drawPan() {
   ctx.save();
   ctx.translate(pan.x, pan.y);
@@ -196,7 +174,7 @@ function drawPan() {
   ctx.restore();
 }
 
-/* Draw burger */
+/* DRAW BURGER */
 function drawBurger() {
   ctx.save();
   ctx.translate(burger.x, burger.y);
@@ -208,7 +186,7 @@ function drawBurger() {
   ctx.restore();
 }
 
-/* Draw timer text */
+/* TIMER TEXT */
 function drawTimer() {
   if (!burger.active) {
     ctx.fillStyle = "black";
@@ -217,7 +195,7 @@ function drawTimer() {
   }
 }
 
-/* Loop */
+/* LOOP */
 function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
