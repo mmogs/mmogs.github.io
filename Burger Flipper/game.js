@@ -122,28 +122,42 @@ function update() {
     burger.x < panRight;
 
   if (touching) {
-    burger.y = panSurfaceY - 20;
+  // Lock burger onto pan surface
+  burger.y = panSurfaceY - 20;
 
-    // inherit motion
-    burger.vy = pan.vy;
+  // --- NEW: sliding physics ---
+  let slope = Math.sin(pan.angle);
 
-    if (pan.vy < -2) {
-      burger.vy += -12;
-      burger.vx += Math.sin(pan.angle) * 8;
-      burger.angularVelocity += Math.sin(pan.angle) * 0.4;
+  // gravity pulling along the pan
+  burger.vx += slope * 0.3;
 
-      canScore = true;
-    } else {
-      burger.vx *= 0.9;
-      burger.angularVelocity *= 0.9;
+  // slight friction (prevents infinite sliding)
+  burger.vx *= 0.98;
 
-      if (canScore && Math.abs(burger.angularVelocity) < 0.25) {
-        score++;
-        document.getElementById("score").textContent = "Score: " + score;
-        canScore = false;
-      }
+  // keep burger stuck to surface (no bouncing)
+  burger.vy = pan.vy;
+
+  // --- LAUNCH ONLY WHEN FLIPPING ---
+  if (pan.vy < -2) {
+    burger.vy += -12;
+
+    burger.vx += slope * 8;
+
+    burger.angularVelocity += slope * 0.4;
+
+    canScore = true;
+  } else {
+    // slow rotation while resting
+    burger.angularVelocity *= 0.9;
+
+    // scoring when landing clean
+    if (canScore && Math.abs(burger.angularVelocity) < 0.25) {
+      score++;
+      document.getElementById("score").textContent = "Score: " + score;
+      canScore = false;
     }
   }
+}
 }
 
 /* Draw pan */
