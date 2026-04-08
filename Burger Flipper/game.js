@@ -5,9 +5,7 @@ canvas.width = canvas.clientWidth;
 canvas.height = canvas.clientHeight;
 
 /* SETTINGS */
-let gravity = 0.35; // floatier
-let score = 0;
-let canScore = false;
+let gravity = 0.18;
 
 /* SPAWN SYSTEM */
 let spawnInterval = 180;
@@ -35,24 +33,15 @@ function spawnBurger() {
     vx: (Math.random() - 0.5) * 1,
     vy: 0,
     angle: 0,
-    angularVelocity: 0,
-    active: true
+    angularVelocity: 0
   };
 }
 
 /* MOUSE CONTROL */
-function getMousePos(e) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top
-  };
-}
-
 canvas.addEventListener("mousemove", (e) => {
-  const pos = getMousePos(e);
-  pan.x = pos.x;
-  pan.y = pos.y;
+  const rect = canvas.getBoundingClientRect();
+  pan.x = e.clientX - rect.left;
+  pan.y = e.clientY - rect.top;
 });
 
 /* SPACE = FLIP */
@@ -74,61 +63,65 @@ function update() {
 
   pan.angle += (-0.2 - pan.angle) * 0.1;
 
-  /* SPAWN BURGERS OVER TIME */
+  /* SPAWN BURGERS */
   spawnCounter++;
 
   if (spawnCounter >= spawnInterval) {
     burgers.push(spawnBurger());
     spawnCounter = 0;
-
-    // increase difficulty
     spawnInterval = Math.max(60, spawnInterval - 2);
   }
 
-  /* UPDATE EACH BURGER */
+  /* UPDATE BURGERS */
   for (let i = 0; i < burgers.length; i++) {
     let burger = burgers[i];
 
+    /* PHYSICS */
     burger.vy += gravity;
 
     burger.x += burger.vx;
     burger.y += burger.vy;
     burger.angle += burger.angularVelocity;
 
-    burger.angularVelocity *= 0.99;
+    burger.angularVelocity *= 0.995;
+    burger.vx *= 0.995;
 
     /* WALLS */
     if (burger.x < 30) {
       burger.x = 30;
       burger.vx *= -0.7;
     }
+
     if (burger.x > canvas.width - 30) {
       burger.x = canvas.width - 30;
       burger.vx *= -0.7;
     }
 
-    /* RESET IF FALLS */
-    if (burger.y > canvas.height) {
-      burgers.splice(i, 1);
-      i--;
-
-      score = 0;
-      document.getElementById("score").textContent = "Score: 0";
-      continue;
+    /* BOTTOM BOUNCE */
+    if (burger.y + 20 > canvas.height) {
+      burger.y = canvas.height - 20;
+      burger.vy *= -0.6;
+      burger.vx *= 0.9;
     }
 
     /* PAN COLLISION */
+
     let panLeft = pan.x - pan.width / 2;
     let panRight = pan.x + pan.width / 2;
+
+    let handleWidth = 80;
+
+    let extendedLeft = panLeft;
+    let extendedRight = panRight + handleWidth;
 
     let panSurfaceY =
       pan.y + Math.sin(pan.angle) * (burger.x - pan.x);
 
     let touching =
       burger.y + 20 > panSurfaceY &&
-      burger.y < panSurfaceY + 15 &&
-      burger.x > panLeft &&
-      burger.x < panRight;
+      burger.y < panSurfaceY + 25 &&
+      burger.x > extendedLeft &&
+      burger.x < extendedRight;
 
     if (touching && burger.vy >= 0) {
 
@@ -145,8 +138,6 @@ function update() {
 
         burger.vx += gravityAlongSlope;
         burger.vx *= 0.995;
-
-        canScore = false;
       }
 
       /* FLIP */
@@ -154,19 +145,6 @@ function update() {
         burger.vy = -10;
         burger.vx += slope * 7;
         burger.angularVelocity += slope * 0.35;
-
-        canScore = true;
-      }
-
-      /* SCORE */
-      if (
-        canScore &&
-        Math.abs(burger.angularVelocity) < 0.25 &&
-        pan.vy >= 0
-      ) {
-        score++;
-        document.getElementById("score").textContent = "Score: " + score;
-        canScore = false;
       }
     }
   }
@@ -178,9 +156,11 @@ function drawPan() {
   ctx.translate(pan.x, pan.y);
   ctx.rotate(pan.angle);
 
+  // pan base
   ctx.fillStyle = "gray";
   ctx.fillRect(-pan.width / 2, 0, pan.width, pan.height);
 
+  // handle (extended hitbox visual)
   ctx.fillStyle = "dimgray";
   ctx.fillRect(pan.width / 2, -5, 60, 20);
 
