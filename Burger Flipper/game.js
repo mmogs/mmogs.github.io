@@ -86,23 +86,32 @@ function update() {
     burger.angularVelocity *= 0.995;
     burger.vx *= 0.995;
 
-    /* WALLS */
-    if (burger.x < 30) {
-      burger.x = 30;
-      burger.vx *= -0.7;
-    }
+   /* BOUNDS (ALL WALLS) */
+let radius = 20;
 
-    if (burger.x > canvas.width - 30) {
-      burger.x = canvas.width - 30;
-      burger.vx *= -0.7;
-    }
+/* LEFT */
+if (burger.x - radius < 0) {
+  burger.x = radius;
+  burger.vx *= -0.7;
+}
 
-    /* BOTTOM BOUNCE */
-    if (burger.y + 20 > canvas.height) {
-      burger.y = canvas.height - 20;
-      burger.vy *= -0.6;
-      burger.vx *= 0.9;
-    }
+/* RIGHT */
+if (burger.x + radius > canvas.width) {
+  burger.x = canvas.width - radius;
+  burger.vx *= -0.7;
+}
+
+/* TOP */
+if (burger.y - radius < 0) {
+  burger.y = radius;
+  burger.vy *= -0.7;
+}
+
+/* BOTTOM */
+if (burger.y + radius > canvas.height) {
+  burger.y = canvas.height - radius;
+  burger.vy *= -0.7;
+}
 
     /* PAN COLLISION */
 
