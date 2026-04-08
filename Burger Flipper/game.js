@@ -116,21 +116,48 @@ function update() {
   }
 
   /* --- PAN COLLISION --- */
-  let panLeft = pan.x - pan.width / 2;
-  let panRight = pan.x + pan.width / 2;
-
-  let panSurfaceY =
-    pan.y + Math.sin(pan.angle) * (burger.x - pan.x);
-
-  let touching =
-    burger.y + 20 > panSurfaceY &&
-    burger.y < panSurfaceY + 15 &&
-    burger.x > panLeft &&
-    burger.x < panRight;
-
   if (touching && burger.vy >= 0) {
-    burger.y = panSurfaceY - 20;
+  burger.y = panSurfaceY - 20;
 
+  let slope = Math.sin(pan.angle);
+
+  /* --- RESTING ON PAN (NO FLIP) --- */
+  if (pan.vy >= 0) {
+    // Stop spinning completely
+    burger.angularVelocity = 0;
+
+    // Stop vertical movement
+    burger.vy = 0;
+
+    // Sliding due to gravity along slope
+    let gravityAlongSlope = gravity * slope;
+
+    burger.vx += gravityAlongSlope;
+    burger.vx *= 0.99;
+
+    canScore = false;
+  }
+
+  /* --- FLIPPING STATE --- */
+  if (pan.vy < -2) {
+    burger.vy = -12;
+    burger.vx += slope * 8;
+    burger.angularVelocity += slope * 0.4;
+
+    canScore = true;
+  }
+
+  /* --- LANDING / SCORING --- */
+  if (
+    canScore &&
+    Math.abs(burger.angularVelocity) < 0.25 &&
+    pan.vy >= 0
+  ) {
+    score++;
+    document.getElementById("score").textContent = "Score: " + score;
+    canScore = false;
+  }
+}
     
 
 /* gravity component along the slope */
