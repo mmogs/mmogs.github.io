@@ -5,23 +5,25 @@ canvas.width = canvas.clientWidth;
 canvas.height = canvas.clientHeight;
 
 let gravity = 0.6;
+let score = 0;
+let canScore = false;
 
-/* Pan */
+/* Spatula */
 let pan = {
   x: canvas.width / 2,
   y: canvas.height - 120,
   width: 160,
   height: 10,
-  lifting: false
+  vy: 0
 };
 
-/* Burger */
+/* Patty */
 let burger = spawnBurger();
 
 function spawnBurger() {
   return {
     x: canvas.width / 2,
-    y: 50,
+    y: pan.y - 40,
     vx: 0,
     vy: 0,
     angle: 0,
@@ -29,92 +31,89 @@ function spawnBurger() {
   };
 }
 
-/* Fix mouse position relative to canvas */
-function getMousePos(e) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top
-  };
-}
-
-/* Mouse controls */
-canvas.addEventListener("mousemove", (e) => {
-  const pos = getMousePos(e);
-  pan.x = pos.x;
-});
-
-canvas.addEventListener("mousedown", () => {
-  pan.lifting = true;
-});
-
-canvas.addEventListener("mouseup", () => {
-  pan.lifting = false;
+/* SPACEBAR = lift spatula */
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    pan.vy = -12; // upward motion
+  }
 });
 
 /* Physics */
 function update() {
-  // Gravity
+  // Apply gravity to burger
   burger.vy += gravity;
 
-  // Movement
   burger.x += burger.vx;
   burger.y += burger.vy;
   burger.angle += burger.angularVelocity;
 
-  /* --- Walls --- */
+  // Pan falls back down
+  pan.vy += gravity;
+  pan.y += pan.vy;
+
+  // Keep pan near bottom
+  if (pan.y > canvas.height - 120) {
+    pan.y = canvas.height - 120;
+    pan.vy = 0;
+  }
+
+  /* Wall bounce */
   if (burger.x < 30) {
     burger.x = 30;
     burger.vx *= -0.7;
   }
-
   if (burger.x > canvas.width - 30) {
     burger.x = canvas.width - 30;
     burger.vx *= -0.7;
   }
 
-  /* --- Bottom reset --- */
+  /* Bottom = reset */
   if (burger.y > canvas.height) {
+    score = 0;
+    document.getElementById("score").textContent = "Score: 0";
     burger = spawnBurger();
     return;
   }
 
-  /* --- Pan collision --- */
-  let panTop = pan.y;
-
-  let isAbovePan =
-    burger.y + 20 > panTop &&
-    burger.y < panTop + 10;
-
-  let isOverPan =
+  /* Pan collision */
+  let touchingPan =
+    burger.y + 20 > pan.y &&
+    burger.y < pan.y + pan.height &&
     Math.abs(burger.x - pan.x) < pan.width / 2;
 
-  if (isAbovePan && isOverPan) {
-    // Snap burger onto pan (prevents repeated falling)
-    burger.y = panTop - 20;
-    burger.vy = 0;
+  if (touchingPan) {
+    burger.y = pan.y - 20;
+    burger.vy = pan.vy; // inherit motion
 
-    if (pan.lifting) {
-      // Flip impulse
+    // Flip only when pan moving up
+    if (pan.vy < -2) {
       burger.vy = -10;
-      burger.vx += (burger.x - pan.x) * 0.3;
+      burger.vx += (burger.x - pan.x) * 0.2;
       burger.angularVelocity += (burger.x - pan.x) * 0.05;
+
+      canScore = true;
     } else {
-      // Rest on pan
       burger.vx *= 0.9;
       burger.angularVelocity *= 0.9;
+
+      // Score when landing after flip
+      if (canScore) {
+        score++;
+        document.getElementById("score").textContent = "Score: " + score;
+        canScore = false;
+      }
     }
   }
 }
 
-/* Draw pan (handle on side) */
+/* Draw spatula */
 function drawPan() {
-  ctx.fillStyle = "dimgray";
+  ctx.fillStyle = "gray";
 
   // Base
   ctx.fillRect(pan.x - pan.width / 2, pan.y, pan.width, pan.height);
 
-  // Handle (right side)
+  // Handle (side)
   ctx.fillRect(pan.x + pan.width / 2, pan.y - 5, 60, 20);
 }
 
@@ -130,7 +129,7 @@ function drawBurger() {
   ctx.restore();
 }
 
-/* Loop */
+/* Game loop */
 function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
