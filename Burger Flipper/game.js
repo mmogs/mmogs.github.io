@@ -9,7 +9,7 @@ let score = 0;
 let canScore = false;
 
 let spawnTimer = 0;
-let spawnDelay = 180;
+let spawnDelay = 180; // 3 seconds
 
 /* PAN */
 let pan = {
@@ -39,7 +39,7 @@ function spawnBurger() {
   };
 }
 
-/* Mouse control */
+/* MOUSE CONTROL */
 function getMousePos(e) {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -54,7 +54,7 @@ canvas.addEventListener("mousemove", (e) => {
   pan.y = pos.y;
 });
 
-/* SPACE = flip */
+/* SPACE = FLIP */
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     pan.vy = -12;
@@ -69,13 +69,13 @@ function update() {
   pan.angle += pan.angularVelocity;
   pan.angularVelocity *= 0.9;
 
-  // Clamp angle (prevents math bugs)
+  // Clamp angle
   pan.angle = Math.max(-0.5, Math.min(0.5, pan.angle));
 
-  // Return to resting angle
+  // Return to resting tilt
   pan.angle += (-0.2 - pan.angle) * 0.1;
 
-  /* --- BURGER TIMER --- */
+  /* --- SPAWN TIMER --- */
   if (!burger.active) {
     spawnTimer--;
     if (spawnTimer <= 0) burger.active = true;
@@ -91,7 +91,7 @@ function update() {
 
   burger.angularVelocity *= 0.995;
 
-  /* Safety check */
+  /* Safety */
   if (isNaN(burger.x) || isNaN(burger.y)) {
     burger = spawnBurger();
     return;
@@ -107,7 +107,7 @@ function update() {
     burger.vx *= -0.7;
   }
 
-  /* RESET */
+  /* RESET IF FALLS */
   if (burger.y > canvas.height) {
     score = 0;
     document.getElementById("score").textContent = "Score: 0";
@@ -116,77 +116,56 @@ function update() {
   }
 
   /* --- PAN COLLISION --- */
+  let panLeft = pan.x - pan.width / 2;
+  let panRight = pan.x + pan.width / 2;
+
+  let panSurfaceY =
+    pan.y + Math.sin(pan.angle) * (burger.x - pan.x);
+
+  let touching =
+    burger.y + 20 > panSurfaceY &&
+    burger.y < panSurfaceY + 15 &&
+    burger.x > panLeft &&
+    burger.x < panRight;
+
   if (touching && burger.vy >= 0) {
-  burger.y = panSurfaceY - 20;
 
-  let slope = Math.sin(pan.angle);
+    burger.y = panSurfaceY - 20;
 
-  /* --- RESTING ON PAN (NO FLIP) --- */
-  if (pan.vy >= 0) {
-    // Stop spinning completely
-    burger.angularVelocity = 0;
+    let slope = Math.sin(pan.angle);
 
-    // Stop vertical movement
-    burger.vy = 0;
+    /* --- RESTING STATE (NO FLIP) --- */
+    if (pan.vy >= 0) {
+      burger.angularVelocity = 0;
+      burger.vy = 0;
 
-    // Sliding due to gravity along slope
-    let gravityAlongSlope = gravity * slope;
+      // Sliding via gravity along slope
+      let gravityAlongSlope = gravity * slope;
 
-    burger.vx += gravityAlongSlope;
-    burger.vx *= 0.99;
+      burger.vx += gravityAlongSlope;
+      burger.vx *= 0.99;
 
-    canScore = false;
-  }
+      canScore = false;
+    }
 
-  /* --- FLIPPING STATE --- */
-  if (pan.vy < -2) {
-    burger.vy = -12;
-    burger.vx += slope * 8;
-    burger.angularVelocity += slope * 0.4;
-
-    canScore = true;
-  }
-
-  /* --- LANDING / SCORING --- */
-  if (
-    canScore &&
-    Math.abs(burger.angularVelocity) < 0.25 &&
-    pan.vy >= 0
-  ) {
-    score++;
-    document.getElementById("score").textContent = "Score: " + score;
-    canScore = false;
-  }
-}
-    
-
-/* gravity component along the slope */
-let gravityAlongSlope = gravity * slope;
-
-/* apply sliding force */
-burger.vx += gravityAlongSlope;
-
-/* friction */
-burger.vx *= 0.99;
-
-    /* STOP BOUNCE */
-    burger.vy = 0;
-
-    /* FLIP */
+    /* --- FLIP STATE --- */
     if (pan.vy < -2) {
       burger.vy = -12;
       burger.vx += slope * 8;
       burger.angularVelocity += slope * 0.4;
 
       canScore = true;
-    } else {
-      burger.angularVelocity *= 0.9;
+    }
 
-      if (canScore && Math.abs(burger.angularVelocity) < 0.25) {
-        score++;
-        document.getElementById("score").textContent = "Score: " + score;
-        canScore = false;
-      }
+    /* --- SCORING --- */
+    if (
+      canScore &&
+      Math.abs(burger.angularVelocity) < 0.25 &&
+      pan.vy >= 0
+    ) {
+      score++;
+      document.getElementById("score").textContent = "Score: " + score;
+      canScore = false;
     }
   }
 }
