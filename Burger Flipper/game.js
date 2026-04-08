@@ -131,11 +131,16 @@ function update() {
   if (touching && burger.vy >= 0) {
     burger.y = panSurfaceY - 20;
 
-    let slope = Math.sin(pan.angle);
+    
 
-    /* SLIDE */
-    burger.vx += slope * 0.3;
-    burger.vx *= 0.98;
+/* gravity component along the slope */
+let gravityAlongSlope = gravity * slope;
+
+/* apply sliding force */
+burger.vx += gravityAlongSlope;
+
+/* friction */
+burger.vx *= 0.99;
 
     /* STOP BOUNCE */
     burger.vy = 0;
