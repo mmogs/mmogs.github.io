@@ -4,11 +4,15 @@ const ctx = canvas.getContext("2d");
 canvas.width = canvas.clientWidth;
 canvas.height = canvas.clientHeight;
 
-let gravity = 0.5; // slightly lower for more airtime
+let gravity = 0.5;
 let score = 0;
 let canScore = false;
 
-/* Pan */
+/* Timer for spawn delay */
+let spawnTimer = 0;
+let spawnDelay = 180; // ~3 seconds (60fps)
+
+/* Pan (NO GRAVITY anymore) */
 let pan = {
   x: canvas.width / 2,
   y: canvas.height - 120,
@@ -23,17 +27,20 @@ let pan = {
 let burger = spawnBurger();
 
 function spawnBurger() {
+  spawnTimer = spawnDelay;
+
   return {
-    x: pan.x,
-    y: pan.y - 30,
+    x: canvas.width / 2, // ✅ always center
+    y: 60,
     vx: 0,
     vy: 0,
     angle: 0,
-    angularVelocity: 0
+    angularVelocity: 0,
+    active: false // waits before falling
   };
 }
 
-/* ✅ FIX: Proper mouse tracking */
+/* Mouse control */
 function getMousePos(e) {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -45,30 +52,36 @@ function getMousePos(e) {
 canvas.addEventListener("mousemove", (e) => {
   const pos = getMousePos(e);
   pan.x = pos.x;
-  pan.y = pos.y; // now follows vertically too
+  pan.y = pos.y;
 });
 
 /* SPACE = flip */
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
-    pan.vy = -14;              // 🔥 stronger lift
-    pan.angularVelocity = 0.35; // 🔥 stronger tilt
+    pan.vy = -12;
+    pan.angularVelocity = 0.35;
   }
 });
 
 /* Physics */
 function update() {
-  /* PAN */
-  pan.vy += gravity;
-  pan.y += pan.vy;
-
+  /* --- PAN (no falling anymore) --- */
   pan.angle += pan.angularVelocity;
   pan.angularVelocity *= 0.9;
 
-  // Smooth return angle
+  // return to resting angle
   pan.angle += (-0.2 - pan.angle) * 0.1;
 
-  /* BURGER */
+  /* --- BURGER TIMER --- */
+  if (!burger.active) {
+    spawnTimer--;
+    if (spawnTimer <= 0) {
+      burger.active = true;
+    }
+    return; // don't update physics yet
+  }
+
+  /* --- BURGER PHYSICS --- */
   burger.vy += gravity;
 
   burger.x += burger.vx;
@@ -95,7 +108,7 @@ function update() {
     return;
   }
 
-  /* PAN COLLISION (angled) */
+  /* --- PAN COLLISION --- */
   let panLeft = pan.x - pan.width / 2;
   let panRight = pan.x + pan.width / 2;
 
@@ -115,11 +128,8 @@ function update() {
     burger.vy = pan.vy;
 
     if (pan.vy < -2) {
-      /* 🔥 BIGGER LAUNCH = REAL FLIPS */
-      burger.vy += -12; // more vertical power
+      burger.vy += -12;
       burger.vx += Math.sin(pan.angle) * 8;
-
-      /* 🔥 MUCH BETTER ROTATION */
       burger.angularVelocity += Math.sin(pan.angle) * 0.4;
 
       canScore = true;
@@ -163,6 +173,15 @@ function drawBurger() {
   ctx.restore();
 }
 
+/* Draw timer text */
+function drawTimer() {
+  if (!burger.active) {
+    ctx.fillStyle = "black";
+    ctx.font = "24px Arial";
+    ctx.fillText("Get Ready...", canvas.width / 2 - 60, 100);
+  }
+}
+
 /* Loop */
 function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -170,6 +189,7 @@ function loop() {
   update();
   drawPan();
   drawBurger();
+  drawTimer();
 
   requestAnimationFrame(loop);
 }
