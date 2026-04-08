@@ -1,0 +1,33 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Page */
+body {
+  font-family: Arial, sans-serif;
+  background: #fafafa;
+  text-align: center;
+}
+
+/* Title */
+h1 {
+  margin: 15px 0;
+}
+
+/* Canvas (GAME AREA) */
+canvas {
+  display: block;
+  width: 100vw;     /* full width */
+  height: 80vh;     /* main game height */
+  background: #f5f5f5;
+  border-top: 2px solid #ccc;
+}
+
+/* Optional: center everything nicely */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
