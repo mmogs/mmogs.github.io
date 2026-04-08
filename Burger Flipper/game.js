@@ -109,17 +109,38 @@ function update() {
   }
 
   /* --- PAN COLLISION --- */
-  let panLeft = pan.x - pan.width / 2;
-  let panRight = pan.x + pan.width / 2;
+  if (touching && burger.vy >= 0) {
+  // Snap burger to surface
+  burger.y = panSurfaceY - 20;
 
-  let panSurfaceY =
-    pan.y + Math.tan(pan.angle) * (burger.x - pan.x);
+  let slope = Math.sin(pan.angle);
 
-  let touching =
-    burger.y + 20 > panSurfaceY &&
-    burger.y < panSurfaceY + 15 &&
-    burger.x > panLeft &&
-    burger.x < panRight;
+  // --- SLIDING ---
+  burger.vx += slope * 0.3;
+  burger.vx *= 0.98;
+
+  // --- STOP BOUNCING ---
+  burger.vy = 0; // 🔥 key fix
+
+  // --- FLIP ONLY WHEN PAN MOVES UP ---
+  if (pan.vy < -2) {
+    burger.vy = -12;
+    burger.vx += slope * 8;
+    burger.angularVelocity += slope * 0.4;
+
+    canScore = true;
+  } else {
+    // settle rotation
+    burger.angularVelocity *= 0.9;
+
+    // scoring
+    if (canScore && Math.abs(burger.angularVelocity) < 0.25) {
+      score++;
+      document.getElementById("score").textContent = "Score: " + score;
+      canScore = false;
+    }
+  }
+}
 
   if (touching) {
   // Lock burger onto pan surface
