@@ -1,25 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patty Flip</title>
-    <link rel="stylesheet" href="game.css">
+  <meta charset="UTF-8">
+  <title>Burger Flip Game</title>
+  <link rel="stylesheet" href="game.css">
 </head>
 <body>
-    <div class="ui">
-        <h1>Patty Flip</h1>
-        <div>Score: <span id="score">0</span></div>
-    </div>
+  <h1>Burger Flip 🍔</h1>
+  <p>Click or press SPACE to flip!</p>
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
+  <h2 id="status"></h2>
 
-    <canvas id="game" width="800" height="500"></canvas>
-
-    <div id="gameOver" class="game-over">
-        <h2>GAME OVER</h2>
-        <p>Final Score: <span id="finalScore">0</span></p>
-        <button onclick="restartGame()">Play Again</button>
-    </div>
-
-    <script src="game.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
