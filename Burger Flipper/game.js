@@ -154,7 +154,7 @@ if (burger.y - radius < 0) {
       }
     }
   }
-}
+
 
 /* DRAW PAN */
 function drawPan() {
