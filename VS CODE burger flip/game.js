@@ -2,101 +2,131 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const statusText = document.getElementById("status");
 
-let gravity = 0.4;
+let gravity = 0.5;
 let gameOver = false;
 
-// Burger
+// Burger physics
 let burger = {
+  x: 250,
+  y: 300,
+  vx: 0,
+  vy: 0,
+  angle: 0,
+  angularVel: 0.05,
+  size: 20
+};
+
+// Spatula (mouse controlled)
+let spatula = {
   x: 200,
-  y: 350,
-  radius: 15,
-  velocityY: 0,
+  y: 380,
+  width: 120,
+  height: 10,
+  tilt: 0.3,
   flipping: false
 };
 
-// Spatula
-let spatula = {
-  x: 150,
-  y: 380,
-  width: 100,
-  height: 10,
-  angle: 0,
-  flipping: false
-};
+// Mouse control
+canvas.addEventListener("mousemove", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  spatula.x = e.clientX - rect.left - spatula.width / 2;
+});
 
 // Controls
+document.addEventListener("click", flip);
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") flip();
 });
-document.addEventListener("click", flip);
 
 function flip() {
   if (gameOver) return;
 
-  spatula.flipping = true;
-  burger.velocityY = -8; // launch burger upward
+  burger.vy = -10;
+  burger.angularVel = (Math.random() - 0.5) * 0.3;
 }
 
-// Game loop
+// Physics update
 function update() {
   if (gameOver) return;
 
   // Apply gravity
-  burger.velocityY += gravity;
-  burger.y += burger.velocityY;
+  burger.vy += gravity;
+  burger.y += burger.vy;
+  burger.x += burger.vx;
 
-  // Spatula animation
-  if (spatula.flipping) {
-    spatula.angle += 0.2;
-    if (spatula.angle > Math.PI) {
-      spatula.angle = 0;
-      spatula.flipping = false;
+  // Rotation
+  burger.angle += burger.angularVel;
+
+  // Spatula surface line (slanted)
+  let spatulaTopY = spatula.y;
+  let leftX = spatula.x;
+  let rightX = spatula.x + spatula.width;
+
+  // Simple collision with angled spatula
+  if (
+    burger.x > leftX &&
+    burger.x < rightX &&
+    burger.vy > 0
+  ) {
+    // calculate surface height based on tilt
+    let t = (burger.x - leftX) / spatula.width;
+    let surfaceY = spatulaTopY - t * 20; // angled
+
+    if (burger.y + burger.size > surfaceY) {
+      burger.y = surfaceY - burger.size;
+      burger.vy = -9;
+      burger.angularVel += 0.1; // spin more on bounce
     }
   }
 
-  // Collision (burger lands on spatula)
-  if (
-    burger.y + burger.radius >= spatula.y &&
-    burger.x > spatula.x &&
-    burger.x < spatula.x + spatula.width &&
-    burger.velocityY > 0
-  ) {
-    burger.y = spatula.y - burger.radius;
-    burger.velocityY = -6; // bounce slightly
-  }
-
-  // Floor = game over
+  // Game over
   if (burger.y > canvas.height) {
     gameOver = true;
     statusText.textContent = "Game Over!";
   }
 }
 
-// Draw
+// Draw burger
+function drawBurger() {
+  ctx.save();
+  ctx.translate(burger.x, burger.y);
+  ctx.rotate(burger.angle);
+
+ 
+
+  // patty
+  ctx.fillStyle = "#5c2e0c";
+  ctx.fillRect(-20, -2, 40, 8);
+
+  
+
+  ctx.restore();
+}
+
+// Draw spatula ___/
+function drawSpatula() {
+  ctx.beginPath();
+  ctx.moveTo(spatula.x, spatula.y);
+  ctx.lineTo(spatula.x + spatula.width, spatula.y - 20);
+  ctx.lineTo(spatula.x + spatula.width, spatula.y - 10);
+  ctx.lineTo(spatula.x, spatula.y);
+  ctx.fillStyle = "black";
+  ctx.fill();
+}
+
+// Draw loop
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw spatula
-  ctx.save();
-  ctx.translate(spatula.x + spatula.width / 2, spatula.y);
-  ctx.rotate(spatula.angle);
-  ctx.fillStyle = "black";
-  ctx.fillRect(-spatula.width / 2, 0, spatula.width, spatula.height);
-  ctx.restore();
-
-  // Draw burger
-  ctx.beginPath();
-  ctx.arc(burger.x, burger.y, burger.radius, 0, Math.PI * 2);
-  ctx.fillStyle = "brown";
-  ctx.fill();
-  ctx.closePath();
+  drawSpatula();
+  drawBurger();
 }
 
-// Loop
-function gameLoop() {
+// Game loop
+function loop() {
   update();
   draw();
-  requestAnimationFrame(gameLoop);
+  requestAnimationFrame(loop);
 }
 
-gameLoop();
+loop();
