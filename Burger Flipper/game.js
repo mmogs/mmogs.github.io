@@ -1,243 +1,273 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreDisplay = document.getElementById('score');
+const gameOverText = document.getElementById('gameOverText');
+const restartBtn = document.getElementById('restartBtn');
 
-canvas.width = canvas.clientWidth;
-canvas.height = canvas.clientHeight;
+// Game state
+let gameRunning = true;
+let score = 0;
+let flipsCompleted = 0;
 
-/* SETTINGS */
-let gravity = 0.18;
+// Spatula object
+const spatula = {
+    x: canvas.width / 2,
+    y: canvas.height - 60,
+    width: 80,
+    height: 15,
+    rotation: 0,
+    targetRotation: 0,
+    rotationSpeed: 0.15,
+    isFlipping: false,
+    flipCooldown: 0,
 
-/* SPAWN SYSTEM */
-let spawnInterval = 180;
-let spawnCounter = 0;
+    update() {
+        // Smooth rotation towards target
+        const diff = this.targetRotation - this.rotation;
+        
+        // Handle rotation wrapping
+        if (diff > Math.PI) {
+            this.rotation += diff - 2 * Math.PI;
+        } else if (diff < -Math.PI) {
+            this.rotation += diff + 2 * Math.PI;
+        } else {
+            this.rotation += diff * this.rotationSpeed;
+        }
 
-/* PAN */
-let pan = {
-  x: canvas.width / 2,
-  y: canvas.height - 120,
-  width: 160,
-  height: 10,
-  angle: -0.2,
-  angularVelocity: 0,
-  vy: 0
+        // Reset to idle position
+        if (!this.isFlipping) {
+            this.targetRotation = 0;
+        }
+
+        // Cooldown
+        if (this.flipCooldown > 0) {
+            this.flipCooldown--;
+        }
+    },
+
+    flip() {
+        if (this.flipCooldown === 0) {
+            this.isFlipping = true;
+            this.targetRotation = Math.PI; // 180 degrees
+            this.flipCooldown = 30;
+            
+            // Stop flipping after rotation completes
+            setTimeout(() => {
+                this.isFlipping = false;
+            }, 500);
+        }
+    },
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+
+        // Draw spatula
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+        // Draw handle
+        ctx.fillStyle = '#A0522D';
+        ctx.fillRect(-this.width / 2 - 30, -this.height / 2, 30, this.height);
+
+        ctx.restore();
+    },
+
+    getCollisionBox() {
+        const cos = Math.cos(this.rotation);
+        const sin = Math.sin(this.rotation);
+
+        const corners = [
+            [-this.width / 2, -this.height / 2],
+            [this.width / 2, -this.height / 2],
+            [this.width / 2, this.height / 2],
+            [-this.width / 2, this.height / 2]
+        ];
+
+        return corners.map(corner => ({
+            x: this.x + corner[0] * cos - corner[1] * sin,
+            y: this.y + corner[0] * sin + corner[1] * cos
+        }));
+    }
 };
 
-/* BURGERS ARRAY */
-let burgers = [spawnBurger()];
-
-/* SPAWN BURGER */
-function spawnBurger() {
-  return {
+// Burger object
+const burger = {
     x: canvas.width / 2,
-    y: 60,
-    vx: (Math.random() - 0.5) * 1,
+    y: 100,
+    width: 60,
+    height: 20,
+    vx: 0,
     vy: 0,
-    angle: 0,
-    angularVelocity: 0
-  };
-}
+    rotation: 0,
+    angularVelocity: 0,
+    gravity: 0.4,
+    isOnSpatula: true,
+    flipCount: 0,
 
-/* MOUSE CONTROL */
-canvas.addEventListener("mousemove", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  pan.x = e.clientX - rect.left;
-  pan.y = e.clientY - rect.top;
-});
+    update() {
+        // Apply gravity
+        this.vy += this.gravity;
 
-/* SPACE = FLIP */
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space") {
-    pan.vy = -12;
-    pan.angularVelocity = 0.35;
-  }
-});
+        // Update position
+        this.x += this.vx;
+        this.y += this.vy;
 
-/* UPDATE */
-function update() {
+        // Update rotation
+        this.rotation += this.angularVelocity;
+        this.angularVelocity *= 0.99; // Friction
 
-  /* PAN PHYSICS */
-  pan.angle += pan.angularVelocity;
-  pan.angularVelocity *= 0.9;
+        // Friction on horizontal movement
+        this.vx *= 0.98;
 
-  pan.angle = Math.max(-0.5, Math.min(0.5, pan.angle));
+        // Check if burger landed on spatula
+        if (this.vy > 0 && this.y > spatula.y - 30) {
+            const burgerBounds = this.getBounds();
+            const spatulaBounds = spatula.getCollisionBox();
 
-  pan.angle += (-0.2 - pan.angle) * 0.1;
+            if (this.checkCollision(burgerBounds, spatulaBounds)) {
+                this.isOnSpatula = true;
+                this.y = spatula.y - 20;
+                this.vy = 0;
+                this.vx = 0;
+                this.angularVelocity = 0;
+                this.rotation = 0;
+                this.flipCount = 0;
+                score += 10;
+                scoreDisplay.textContent = score;
+            }
+        }
 
-  /* SPAWN BURGERS */
-  spawnCounter++;
+        // Check if burger fell through the floor
+        if (this.y > canvas.height + 50) {
+            endGame();
+        }
+    },
 
-  if (spawnCounter >= spawnInterval) {
-    burgers.push(spawnBurger());
-    spawnCounter = 0;
-    spawnInterval = Math.max(60, spawnInterval - 2);
-  }
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
 
-  /* UPDATE BURGERS */
-  for (let i = 0; i < burgers.length; i++) {
-    let burger = burgers[i];
+        // Draw top bun
+        ctx.fillStyle = '#D2691E';
+        ctx.beginPath();
+        ctx.ellipse(0, -this.height / 2, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#8B4513';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
-    /* PHYSICS */
-    burger.vy += gravity;
+        // Draw patty
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(-this.width / 2, -3, this.width, 6);
 
-    burger.x += burger.vx;
-    burger.y += burger.vy;
-    burger.angle += burger.angularVelocity;
+        // Draw bottom bun
+        ctx.fillStyle = '#D2691E';
+        ctx.beginPath();
+        ctx.ellipse(0, this.height / 2, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
 
-    burger.angularVelocity *= 0.995;
-    burger.vx *= 0.995;
+        ctx.restore();
+    },
 
-   /* BOUNDS (ALL WALLS) */
-let radius = 20;
+    getBounds() {
+        return {
+            x: this.x - this.width / 2,
+            y: this.y - this.height / 2,
+            width: this.width,
+            height: this.height
+        };
+    },
 
-/* LEFT */
-if (burger.x - radius < 0) {
-  burger.x = radius;
-  burger.vx *= -0.7;
-}
+    checkCollision(burgerBounds, spatulaCorners) {
+        // Simple AABB check with spatula corners
+        const minX = burgerBounds.x;
+        const maxX = burgerBounds.x + burgerBounds.width;
+        const minY = burgerBounds.y;
+        const maxY = burgerBounds.y + burgerBounds.height;
 
-/* RIGHT */
-if (burger.x + radius > canvas.width) {
-  burger.x = canvas.width - radius;
-  burger.vx *= -0.7;
-}
+        for (let corner of spatulaCorners) {
+            if (corner.x >= minX && corner.x <= maxX &&
+                corner.y >= minY && corner.y <= maxY) {
+                return true;
+            }
+        }
 
-/* TOP */
-if (burger.y - radius < 0) {
-  burger.y = radius;
-  burger.vy *= -0.7;
-}
-
-
-}
-
-    /* PAN COLLISION */
-
-    let panLeft = pan.x - pan.width / 2;
-    let panRight = pan.x + pan.width / 2;
-
-    let handleWidth = 80;
-
-    let extendedLeft = panLeft;
-    let extendedRight = panRight + handleWidth;
-
-    let panSurfaceY =
-      pan.y + Math.sin(pan.angle) * (burger.x - pan.x);
-
-    let touching =
-      burger.y + 20 > panSurfaceY &&
-      burger.y < panSurfaceY + 25 &&
-      burger.x > extendedLeft &&
-      burger.x < extendedRight;
-
-    if (touching && burger.vy >= 0) {
-
-      burger.y = panSurfaceY - 20;
-
-      let slope = Math.sin(pan.angle);
-
-      /* RESTING SLIDE */
-      if (pan.vy >= 0) {
-        burger.angularVelocity = 0;
-        burger.vy = 0;
-
-        let gravityAlongSlope = gravity * slope;
-
-        burger.vx += gravityAlongSlope;
-        burger.vx *= 0.995;
-      }
-
-      /* FLIP */
-      if (pan.vy < -2) {
-        burger.vy = -10;
-        burger.vx += slope * 7;
-        burger.angularVelocity += slope * 0.35;
-      }
+        return false;
     }
-  }
+};
 
+// Input handling
+const keys = {};
 
-/* DRAW PAN */
-function drawPan() {
-  ctx.save();
-  ctx.translate(pan.x, pan.y);
-  ctx.rotate(pan.angle);
+window.addEventListener('keydown', (e) => {
+    keys[e.key] = true;
 
-  // pan base
-  ctx.fillStyle = "gray";
-  ctx.fillRect(-pan.width / 2, 0, pan.width, pan.height);
+    if ((e.key === ' ' || e.key === 'ArrowUp') && gameRunning) {
+        e.preventDefault();
+        spatula.flip();
+        
+        if (burger.isOnSpatula) {
+            burger.isOnSpatula = false;
+            burger.vy = -12;
+            burger.angularVelocity = 0.15;
+            burger.flipCount++;
+            flipsCompleted++;
+        }
+    }
+});
 
-  // handle (extended hitbox visual)
-  ctx.fillStyle = "dimgray";
-  ctx.fillRect(pan.width / 2, -5, 60, 20);
+window.addEventListener('keyup', (e) => {
+    keys[e.key] = false;
+});
 
-  ctx.restore();
+restartBtn.addEventListener('click', () => {
+    location.reload();
+});
+
+// Collision detection helper
+function checkCircleCollision(x1, y1, r1, x2, y2, r2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance < r1 + r2;
 }
 
-function drawBurger(burger) {
-  ctx.save();
-  ctx.translate(burger.x, burger.y);
-  ctx.rotate(burger.angle);
-
-  let w = 60;
-  let h = 40;
-
-  // Bottom bun
-  ctx.fillStyle = "#d19b5e";
-  ctx.beginPath();
-  ctx.ellipse(0, 10, w / 2, h / 4, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Patty
-  ctx.fillStyle = "#5c2e1f";
-  ctx.fillRect(-w / 2, -5, w, 15);
-
-  // Cheese
-  ctx.fillStyle = "#f7c531";
-  ctx.beginPath();
-  ctx.moveTo(-20, 5);
-  ctx.lineTo(0, 15);
-  ctx.lineTo(20, 5);
-  ctx.closePath();
-  ctx.fill();
-
-  // Lettuce
-  ctx.fillStyle = "#4caf50";
-  for (let i = -25; i <= 25; i += 10) {
-    ctx.beginPath();
-    ctx.arc(i, -5, 6, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Top bun
-  ctx.fillStyle = "#e0ac69";
-  ctx.beginPath();
-  ctx.ellipse(0, -15, w / 2, h / 3, 0, Math.PI, 0);
-  ctx.fill();
-
-  // Sesame seeds
-  ctx.fillStyle = "white";
-  for (let i = 0; i < 6; i++) {
-    let x = (Math.random() - 0.5) * 30;
-    let y = -15 + Math.random() * 5;
-    ctx.fillRect(x, y, 3, 2);
-  }
-
-  ctx.restore();
+// Game over function
+function endGame() {
+    gameRunning = false;
+    gameOverText.textContent = `Game Over! Final Score: ${score} (${flipsCompleted} flips)`;
+    restartBtn.style.display = 'block';
 }
 
-/* LOOP */
-function loop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+// Game loop
+function gameLoop() {
+    // Clear canvas
+    ctx.fillStyle = 'rgba(135, 206, 235, 0.3)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  update();
+    if (gameRunning) {
+        spatula.update();
+        burger.update();
+    }
 
-  drawPan();
+    spatula.draw();
+    burger.draw();
 
-  for (let burger of burgers) {
-    drawBurger(burger);
-  }
+    // Draw floor
+    ctx.fillStyle = 'rgba(100, 100, 100, 0.2)';
+    ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
 
-  requestAnimationFrame(loop);
+    requestAnimationFrame(gameLoop);
 }
 
-loop();
+// Start the game
+gameLoop();
+
+// Initial state: place burger on spatula
+burger.x = spatula.x;
+burger.y = spatula.y - 20;
+burger.isOnSpatula = true;
