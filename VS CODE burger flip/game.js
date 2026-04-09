@@ -86,6 +86,8 @@ canvas.addEventListener("mousemove", (e) => {
 /* FLIP */
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
+    e.preventDefault();
+
     pan.vy = -12;
     pan.angularVelocity = 0.35;
   }
@@ -165,8 +167,15 @@ function update() {
         b.vx += slope * 7;
         b.angularVelocity += slope * 0.35;
 
-        spawnParticles(b.x, b.y);
-        shake = 8;
+        // 🔥 particles (double for golden)
+        if (b.golden) {
+          spawnParticles(b.x, b.y);
+          spawnParticles(b.x, b.y);
+          shake = 12;
+        } else {
+          spawnParticles(b.x, b.y);
+          shake = 8;
+        }
 
         canScore = true;
       }
@@ -179,7 +188,7 @@ function update() {
     }
   }
 
-  /* BURGER COLLISIONS */
+  /* COLLISIONS */
   for (let i = 0; i < burgers.length; i++) {
     for (let j = i + 1; j < burgers.length; j++) {
       let a = burgers[i];
@@ -238,7 +247,7 @@ function update() {
   shake *= 0.9;
 }
 
-/* DRAW */
+/* DRAW PAN */
 function drawPan() {
   ctx.save();
   ctx.translate(pan.x, pan.y);
@@ -253,6 +262,7 @@ function drawPan() {
   ctx.restore();
 }
 
+/* DRAW BURGER (WITH GLOW) */
 function drawBurger(b) {
   ctx.save();
   ctx.translate(b.x, b.y);
@@ -261,12 +271,21 @@ function drawBurger(b) {
   let stretch = 1 + Math.min(Math.abs(b.vy) * 0.02, 0.3);
   ctx.scale(1 / stretch, stretch);
 
+  if (b.golden) {
+    ctx.shadowColor = "gold";
+    ctx.shadowBlur = 25;
+  } else {
+    ctx.shadowBlur = 0;
+  }
+
   ctx.fillStyle = b.golden ? "gold" : "saddlebrown";
   ctx.fillRect(-30, -20, 60, 40);
 
   ctx.restore();
+  ctx.shadowBlur = 0;
 }
 
+/* PARTICLES DRAW */
 function drawParticles() {
   ctx.fillStyle = "orange";
   for (let p of particles) {
