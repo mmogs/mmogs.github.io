@@ -1,131 +1,216 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const statusText = document.getElementById("status");
 
-let gravity = 0.5;
-let gameOver = false;
+canvas.width = canvas.clientWidth;
+canvas.height = canvas.clientHeight;
 
-// Burger physics
-let burger = {
-  x: 250,
-  y: 300,
-  vx: 0,
-  vy: 0,
-  angle: 0,
-  angularVel: 0.05,
-  size: 20
-};
+/* SETTINGS */
+let gravity = 0.35; // floatier
+let score = 0;
+let canScore = false;
 
-// Spatula (mouse controlled)
-let spatula = {
-  x: 200,
-  y: 380,
-  width: 120,
+/* SPAWN SYSTEM */
+let spawnInterval = 180;
+let spawnCounter = 0;
+
+/* PAN */
+let pan = {
+  x: canvas.width / 2,
+  y: canvas.height - 120,
+  width: 160,
   height: 10,
-  tilt: 0.3,
-  flipping: false
+  angle: -0.2,
+  angularVelocity: 0,
+  vy: 0
 };
 
-// Mouse control
-canvas.addEventListener("mousemove", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  spatula.x = e.clientX - rect.left - spatula.width / 2;
-});
+/* BURGERS ARRAY */
+let burgers = [spawnBurger()];
 
-// Controls
-document.addEventListener("click", flip);
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space") flip();
-});
-
-function flip() {
-  if (gameOver) return;
-
-  burger.vy = -10;
-  burger.angularVel = (Math.random() - 0.5) * 0.3;
+/* SPAWN BURGER */
+function spawnBurger() {
+  return {
+    x: canvas.width / 2,
+    y: 60,
+    vx: (Math.random() - 0.5) * 1,
+    vy: 0,
+    angle: 0,
+    angularVelocity: 0,
+    active: true
+  };
 }
 
-// Physics update
+/* MOUSE CONTROL */
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+}
+
+canvas.addEventListener("mousemove", (e) => {
+  const pos = getMousePos(e);
+  pan.x = pos.x;
+  pan.y = pos.y;
+});
+
+/* SPACE = FLIP */
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    pan.vy = -12;
+    pan.angularVelocity = 0.35;
+  }
+});
+
+/* UPDATE */
 function update() {
-  if (gameOver) return;
 
-  // Apply gravity
-  burger.vy += gravity;
-  burger.y += burger.vy;
-  burger.x += burger.vx;
+  /* PAN PHYSICS */
+  pan.angle += pan.angularVelocity;
+  pan.angularVelocity *= 0.9;
 
-  // Rotation
-  burger.angle += burger.angularVel;
+  pan.angle = Math.max(-0.5, Math.min(0.5, pan.angle));
 
-  // Spatula surface line (slanted)
-  let spatulaTopY = spatula.y;
-  let leftX = spatula.x;
-  let rightX = spatula.x + spatula.width;
+  pan.angle += (-0.2 - pan.angle) * 0.1;
 
-  // Simple collision with angled spatula
-  if (
-    burger.x > leftX &&
-    burger.x < rightX &&
-    burger.vy > 0
-  ) {
-    // calculate surface height based on tilt
-    let t = (burger.x - leftX) / spatula.width;
-    let surfaceY = spatulaTopY - t * 20; // angled
+  /* SPAWN BURGERS OVER TIME */
+  spawnCounter++;
 
-    if (burger.y + burger.size > surfaceY) {
-      burger.y = surfaceY - burger.size;
-      burger.vy = -9;
-      burger.angularVel += 0.1; // spin more on bounce
+  if (spawnCounter >= spawnInterval) {
+    burgers.push(spawnBurger());
+    spawnCounter = 0;
+
+    // increase difficulty
+    spawnInterval = Math.max(60, spawnInterval - 2);
+  }
+
+  /* UPDATE EACH BURGER */
+  for (let i = 0; i < burgers.length; i++) {
+    let burger = burgers[i];
+
+    burger.vy += gravity;
+
+    burger.x += burger.vx;
+    burger.y += burger.vy;
+    burger.angle += burger.angularVelocity;
+
+    burger.angularVelocity *= 0.99;
+
+    /* WALLS */
+    if (burger.x < 30) {
+      burger.x = 30;
+      burger.vx *= -0.7;
+    }
+    if (burger.x > canvas.width - 30) {
+      burger.x = canvas.width - 30;
+      burger.vx *= -0.7;
+    }
+
+    /* RESET IF FALLS */
+    if (burger.y > canvas.height) {
+      burgers.splice(i, 1);
+      i--;
+
+      score = 0;
+      document.getElementById("score").textContent = "Score: 0";
+      continue;
+    }
+
+    /* PAN COLLISION */
+    let panLeft = pan.x - pan.width / 2;
+    let panRight = pan.x + pan.width / 2;
+
+    let panSurfaceY =
+      pan.y + Math.sin(pan.angle) * (burger.x - pan.x);
+
+    let touching =
+      burger.y + 20 > panSurfaceY &&
+      burger.y < panSurfaceY + 15 &&
+      burger.x > panLeft &&
+      burger.x < panRight;
+
+    if (touching && burger.vy >= 0) {
+
+      burger.y = panSurfaceY - 20;
+
+      let slope = Math.sin(pan.angle);
+
+      /* RESTING SLIDE */
+      if (pan.vy >= 0) {
+        burger.angularVelocity = 0;
+        burger.vy = 0;
+
+        let gravityAlongSlope = gravity * slope;
+
+        burger.vx += gravityAlongSlope;
+        burger.vx *= 0.995;
+
+        canScore = false;
+      }
+
+      /* FLIP */
+      if (pan.vy < -2) {
+        burger.vy = -10;
+        burger.vx += slope * 7;
+        burger.angularVelocity += slope * 0.35;
+
+        canScore = true;
+      }
+
+      /* SCORE */
+      if (
+        canScore &&
+        Math.abs(burger.angularVelocity) < 0.25 &&
+        pan.vy >= 0
+      ) {
+        score++;
+        document.getElementById("score").textContent = "Score: " + score;
+        canScore = false;
+      }
     }
   }
-
-  // Game over
-  if (burger.y > canvas.height) {
-    gameOver = true;
-    statusText.textContent = "Game Over!";
-  }
 }
 
-// Draw burger
-function drawBurger() {
+/* DRAW PAN */
+function drawPan() {
   ctx.save();
-  ctx.translate(burger.x, burger.y);
-  ctx.rotate(burger.angle);
+  ctx.translate(pan.x, pan.y);
+  ctx.rotate(pan.angle);
 
- 
+  ctx.fillStyle = "gray";
+  ctx.fillRect(-pan.width / 2, 0, pan.width, pan.height);
 
-  // patty
-  ctx.fillStyle = "#5c2e0c";
-  ctx.fillRect(-20, -2, 40, 8);
-
-  
+  ctx.fillStyle = "dimgray";
+  ctx.fillRect(pan.width / 2, -5, 60, 20);
 
   ctx.restore();
 }
 
-// Draw spatula ___/
-function drawSpatula() {
-  ctx.beginPath();
-  ctx.moveTo(spatula.x, spatula.y);
-  ctx.lineTo(spatula.x + spatula.width, spatula.y - 20);
-  ctx.lineTo(spatula.x + spatula.width, spatula.y - 10);
-  ctx.lineTo(spatula.x, spatula.y);
-  ctx.fillStyle = "black";
-  ctx.fill();
+/* DRAW BURGER */
+function drawBurger(burger) {
+  ctx.save();
+  ctx.translate(burger.x, burger.y);
+  ctx.rotate(burger.angle);
+
+  ctx.fillStyle = "saddlebrown";
+  ctx.fillRect(-30, -20, 60, 40);
+
+  ctx.restore();
 }
 
-// Draw loop
-function draw() {
+/* LOOP */
+function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  drawSpatula();
-  drawBurger();
-}
-
-// Game loop
-function loop() {
   update();
-  draw();
+
+  drawPan();
+
+  for (let burger of burgers) {
+    drawBurger(burger);
+  }
+
   requestAnimationFrame(loop);
 }
 

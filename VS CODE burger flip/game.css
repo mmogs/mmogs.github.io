@@ -1,10 +1,29 @@
-body {
-  text-align: center;
-  font-family: Arial;
-  background: #f4f4f4;
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
+body {
+  text-align: center;
+  font-family: Arial, sans-serif;
+  background: #fafafa;
+}
+
+h1 {
+  margin-top: 10px;
+}
+
+#score {
+  margin: 10px;
+  font-size: 18px;
+}
+
+/* Game canvas */
 canvas {
-  background: #e0e0e0;
-  border: 2px solid #333;
+  display: block;
+  width: 100vw;
+  height: 75vh;
+  background: #f0f0f0;
 }
