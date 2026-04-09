@@ -9,6 +9,7 @@ body {
   text-align: center;
   font-family: Arial, sans-serif;
   background: #fafafa;
+   margin: 0;
 }
 
 h1 {
@@ -23,7 +24,7 @@ h1 {
 /* Game canvas */
 canvas {
   display: block;
-  width: 1000vw;
-  height: 750vh;
+  width: 100vw;
+  height: 100vh;
   background: #f0f0f0;
 }
