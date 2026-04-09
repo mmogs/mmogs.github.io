@@ -1,10 +1,17 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-/* FULLSCREEN */
+/* FULLSCREEN (NO STRETCH, HIGH DPI FIX) */
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.style.width = window.innerWidth + "px";
+  canvas.style.height = window.innerHeight + "px";
+
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
@@ -14,14 +21,16 @@ let gravity = 0.35;
 let score = 0;
 let canScore = false;
 
-/* SPAWN SYSTEM */
+let shake = 0;
+let particles = [];
+
 let spawnInterval = 180;
 let spawnCounter = 0;
 
 /* PAN */
 let pan = {
-  x: canvas.width / 2,
-  y: canvas.height - 120,
+  x: window.innerWidth / 2,
+  y: window.innerHeight - 120,
   width: 160,
   height: 10,
   angle: -0.2,
@@ -29,27 +38,37 @@ let pan = {
   vy: 0
 };
 
-/* BURGERS ARRAY */
+/* BURGERS */
 let burgers = [spawnBurger()];
 
-/* SPAWN BURGER */
+/* SPAWN */
 function spawnBurger() {
-  const isGolden = Math.random() < 0.01;
-
   return {
-    x: canvas.width / 2,
+    x: window.innerWidth / 2,
     y: 60,
     vx: (Math.random() - 0.5) * 2,
     vy: 0,
     radius: 20,
     angle: 0,
     angularVelocity: (Math.random() - 0.5) * 0.1,
-    active: true,
-    golden: isGolden
+    golden: Math.random() < 0.01
   };
 }
 
-/* MOUSE CONTROL */
+/* PARTICLES */
+function spawnParticles(x, y) {
+  for (let i = 0; i < 10; i++) {
+    particles.push({
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 5,
+      vy: (Math.random() - 1.5) * 5,
+      life: 30
+    });
+  }
+}
+
+/* INPUT */
 function getMousePos(e) {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -64,7 +83,7 @@ canvas.addEventListener("mousemove", (e) => {
   pan.y = pos.y;
 });
 
-/* SPACE = FLIP */
+/* FLIP */
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     pan.vy = -12;
@@ -75,13 +94,11 @@ document.addEventListener("keydown", (e) => {
 /* UPDATE */
 function update() {
 
-  /* PAN PHYSICS */
   pan.angle += pan.angularVelocity;
   pan.angularVelocity *= 0.9;
   pan.angle = Math.max(-0.5, Math.min(0.5, pan.angle));
   pan.angle += (-0.2 - pan.angle) * 0.1;
 
-  /* SPAWN SYSTEM */
   spawnCounter++;
   if (spawnCounter >= spawnInterval) {
     burgers.push(spawnBurger());
@@ -89,89 +106,73 @@ function update() {
     spawnInterval = Math.max(60, spawnInterval - 2);
   }
 
-  /* UPDATE BURGERS */
   for (let i = 0; i < burgers.length; i++) {
-    let burger = burgers[i];
+    let b = burgers[i];
 
-    burger.vy += gravity;
+    b.vy += gravity;
+    b.vx *= 0.999;
+    b.vy *= 0.999;
 
-    // air drag
-    burger.vx *= 0.999;
-    burger.vy *= 0.999;
+    b.x += b.vx;
+    b.y += b.vy;
 
-    burger.x += burger.vx;
-    burger.y += burger.vy;
+    b.angle += b.angularVelocity;
+    b.angularVelocity *= 0.995;
 
-    burger.angle += burger.angularVelocity;
-    burger.angularVelocity *= 0.995;
-
-    /* WALLS */
-    if (burger.x < burger.radius) {
-      burger.x = burger.radius;
-      burger.vx *= -0.7;
+    if (b.x < b.radius) {
+      b.x = b.radius;
+      b.vx *= -0.7;
     }
-    if (burger.x > canvas.width - burger.radius) {
-      burger.x = canvas.width - burger.radius;
-      burger.vx *= -0.7;
+    if (b.x > window.innerWidth - b.radius) {
+      b.x = window.innerWidth - b.radius;
+      b.vx *= -0.7;
     }
 
-    /* FALL RESET */
-    if (burger.y > canvas.height) {
+    if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
-
       score = 0;
       document.getElementById("score").textContent = "Score: 0";
       continue;
     }
 
-    /* PAN COLLISION */
     let panLeft = pan.x - pan.width / 2;
     let panRight = pan.x + pan.width / 2;
 
-    let panSurfaceY =
-      pan.y + Math.sin(pan.angle) * (burger.x - pan.x);
+    let surfaceY = pan.y + Math.sin(pan.angle) * (b.x - pan.x);
 
     let touching =
-      burger.y + burger.radius > panSurfaceY &&
-      burger.y < panSurfaceY + 15 &&
-      burger.x > panLeft &&
-      burger.x < panRight;
+      b.y + b.radius > surfaceY &&
+      b.y < surfaceY + 15 &&
+      b.x > panLeft &&
+      b.x < panRight;
 
-    if (touching && burger.vy >= 0) {
-
-      burger.y = panSurfaceY - burger.radius;
+    if (touching && b.vy >= 0) {
+      b.y = surfaceY - b.radius;
 
       let slope = Math.sin(pan.angle);
 
-      /* RESTING */
       if (pan.vy >= 0) {
-        burger.angularVelocity = 0;
-        burger.vy = 0;
-
-        let gravityAlongSlope = gravity * slope;
-        burger.vx += gravityAlongSlope;
-        burger.vx *= 0.995;
-
+        b.vy = 0;
+        b.angularVelocity *= 0.5;
+        b.vx += gravity * slope;
+        b.vx *= 0.98;
         canScore = false;
       }
 
-      /* FLIP */
       if (pan.vy < -2) {
-        burger.vy = -10;
-        burger.vx += slope * 7;
-        burger.angularVelocity += slope * 0.35;
+        b.vy = -10;
+        b.vx += slope * 7;
+        b.angularVelocity += slope * 0.35;
+
+        spawnParticles(b.x, b.y);
+        shake = 8;
 
         canScore = true;
       }
 
-      /* SCORE */
-      if (
-        canScore &&
-        Math.abs(burger.angularVelocity) < 0.25 &&
-        pan.vy >= 0
-      ) {
-        score += burger.golden ? 5 : 1;
+      if (canScore && Math.abs(b.angularVelocity) < 0.25 && pan.vy >= 0) {
+        score += b.golden ? 5 : 1;
         document.getElementById("score").textContent = "Score: " + score;
         canScore = false;
       }
@@ -195,10 +196,10 @@ function update() {
 
         let overlap = minDist - dist;
 
-        a.x -= nx * overlap / 2;
-        a.y -= ny * overlap / 2;
-        b.x += nx * overlap / 2;
-        b.y += ny * overlap / 2;
+        a.x -= nx * overlap * 0.4;
+        a.y -= ny * overlap * 0.6;
+        b.x += nx * overlap * 0.4;
+        b.y += ny * overlap * 0.6;
 
         let dvx = b.vx - a.vx;
         let dvy = b.vy - a.vy;
@@ -206,21 +207,38 @@ function update() {
         let impact = dvx * nx + dvy * ny;
         if (impact > 0) continue;
 
-        let impulse = impact * 0.8;
+        let impulse = impact * 0.6;
 
         a.vx += impulse * nx;
         a.vy += impulse * ny;
         b.vx -= impulse * nx;
         b.vy -= impulse * ny;
 
-        a.angularVelocity += (Math.random() - 0.5) * 0.2;
-        b.angularVelocity += (Math.random() - 0.5) * 0.2;
+        a.vx *= 0.98;
+        b.vx *= 0.98;
       }
     }
   }
+
+  /* PARTICLES */
+  for (let i = 0; i < particles.length; i++) {
+    let p = particles[i];
+
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.2;
+    p.life--;
+
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      i--;
+    }
+  }
+
+  shake *= 0.9;
 }
 
-/* DRAW PAN */
+/* DRAW */
 function drawPan() {
   ctx.save();
   ctx.translate(pan.x, pan.y);
@@ -235,29 +253,45 @@ function drawPan() {
   ctx.restore();
 }
 
-/* DRAW BURGER */
-function drawBurger(burger) {
+function drawBurger(b) {
   ctx.save();
-  ctx.translate(burger.x, burger.y);
-  ctx.rotate(burger.angle);
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.angle);
 
-  ctx.fillStyle = burger.golden ? "gold" : "saddlebrown";
+  let stretch = 1 + Math.min(Math.abs(b.vy) * 0.02, 0.3);
+  ctx.scale(1 / stretch, stretch);
+
+  ctx.fillStyle = b.golden ? "gold" : "saddlebrown";
   ctx.fillRect(-30, -20, 60, 40);
 
   ctx.restore();
 }
 
+function drawParticles() {
+  ctx.fillStyle = "orange";
+  for (let p of particles) {
+    ctx.fillRect(p.x, p.y, 4, 4);
+  }
+}
+
 /* LOOP */
 function loop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  let dx = (Math.random() - 0.5) * shake;
+  let dy = (Math.random() - 0.5) * shake;
+
+  ctx.setTransform(1, 0, 0, 1, dx, dy);
+
+  ctx.clearRect(-dx, -dy, window.innerWidth, window.innerHeight);
 
   update();
 
   drawPan();
 
-  for (let burger of burgers) {
-    drawBurger(burger);
+  for (let b of burgers) {
+    drawBurger(b);
   }
+
+  drawParticles();
 
   requestAnimationFrame(loop);
 }
