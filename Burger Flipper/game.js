@@ -107,10 +107,7 @@ if (burger.y - radius < 0) {
   burger.vy *= -0.7;
 }
 
-/* BOTTOM */
-if (burger.y + radius > canvas.height) {
-  burger.y = canvas.height - radius;
-  burger.vy *= -0.7;
+
 }
 
     /* PAN COLLISION */
@@ -176,14 +173,54 @@ function drawPan() {
   ctx.restore();
 }
 
-/* DRAW BURGER */
 function drawBurger(burger) {
   ctx.save();
   ctx.translate(burger.x, burger.y);
   ctx.rotate(burger.angle);
 
-  ctx.fillStyle = "saddlebrown";
-  ctx.fillRect(-30, -20, 60, 40);
+  let w = 60;
+  let h = 40;
+
+  // Bottom bun
+  ctx.fillStyle = "#d19b5e";
+  ctx.beginPath();
+  ctx.ellipse(0, 10, w / 2, h / 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Patty
+  ctx.fillStyle = "#5c2e1f";
+  ctx.fillRect(-w / 2, -5, w, 15);
+
+  // Cheese
+  ctx.fillStyle = "#f7c531";
+  ctx.beginPath();
+  ctx.moveTo(-20, 5);
+  ctx.lineTo(0, 15);
+  ctx.lineTo(20, 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Lettuce
+  ctx.fillStyle = "#4caf50";
+  for (let i = -25; i <= 25; i += 10) {
+    ctx.beginPath();
+    ctx.arc(i, -5, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Top bun
+  ctx.fillStyle = "#e0ac69";
+  ctx.beginPath();
+  ctx.ellipse(0, -15, w / 2, h / 3, 0, Math.PI, 0);
+  ctx.fill();
+
+  // Sesame seeds
+  ctx.fillStyle = "white";
+  for (let i = 0; i < 6; i++) {
+    let x = (Math.random() - 0.5) * 30;
+    let y = -15 + Math.random() * 5;
+    ctx.fillRect(x, y, 3, 2);
+  }
 
   ctx.restore();
 }
