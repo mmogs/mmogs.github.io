@@ -24,7 +24,8 @@ let canScore = false;
 let shake = 0;
 let particles = [];
 
-let spawnInterval = 180;
+/* SPAWN SYSTEM (SLOWER) */
+let spawnInterval = 360; // 🔥 doubled from 180
 let spawnCounter = 0;
 
 /* PAN */
@@ -105,7 +106,9 @@ function update() {
   if (spawnCounter >= spawnInterval) {
     burgers.push(spawnBurger());
     spawnCounter = 0;
-    spawnInterval = Math.max(60, spawnInterval - 2);
+
+    // difficulty still ramps but slower overall
+    spawnInterval = Math.max(120, spawnInterval - 2);
   }
 
   for (let i = 0; i < burgers.length; i++) {
@@ -167,7 +170,6 @@ function update() {
         b.vx += slope * 7;
         b.angularVelocity += slope * 0.35;
 
-        // 🔥 particles (double for golden)
         if (b.golden) {
           spawnParticles(b.x, b.y);
           spawnParticles(b.x, b.y);
@@ -247,7 +249,7 @@ function update() {
   shake *= 0.9;
 }
 
-/* DRAW PAN */
+/* DRAW */
 function drawPan() {
   ctx.save();
   ctx.translate(pan.x, pan.y);
@@ -262,7 +264,6 @@ function drawPan() {
   ctx.restore();
 }
 
-/* DRAW BURGER (WITH GLOW) */
 function drawBurger(b) {
   ctx.save();
   ctx.translate(b.x, b.y);
@@ -285,7 +286,6 @@ function drawBurger(b) {
   ctx.shadowBlur = 0;
 }
 
-/* PARTICLES DRAW */
 function drawParticles() {
   ctx.fillStyle = "orange";
   for (let p of particles) {
