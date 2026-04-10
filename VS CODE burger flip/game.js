@@ -25,6 +25,10 @@ let particles = [];
 let spawnInterval = 360;
 let spawnCounter = 0;
 
+let score = 0;
+let misses = 0;
+let gameOver = false;
+
 /* PAN */
 let pan = {
   x: window.innerWidth / 2,
@@ -49,7 +53,12 @@ function spawnBurger() {
     radius: 20,
     angle: 0,
     angularVelocity: (Math.random() - 0.5) * 0.1,
-    golden: Math.random() < 0.01
+    golden: Math.random() < 0.01,
+
+    life: 0,
+    targetLife: 300 + Math.random() * 300, // 5–10 sec (60fps)
+    fading: false,
+    alpha: 1
   };
 }
 
@@ -81,18 +90,34 @@ canvas.addEventListener("mousemove", (e) => {
   pan.y = pos.y;
 });
 
-/* FLIP */
+/* KEYS */
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     e.preventDefault();
+    if (!gameOver) {
+      pan.vy = -12;
+      pan.angularVelocity = 0.35;
+    }
+  }
 
-    pan.vy = -12;
-    pan.angularVelocity = 0.35;
+  if (e.code === "KeyR") {
+    restartGame();
   }
 });
 
+/* RESTART */
+function restartGame() {
+  burgers = [spawnBurger()];
+  particles = [];
+  score = 0;
+  misses = 0;
+  gameOver = false;
+  spawnInterval = 360;
+}
+
 /* UPDATE */
 function update() {
+  if (gameOver) return;
 
   pan.angle += pan.angularVelocity;
   pan.angularVelocity *= 0.9;
@@ -108,6 +133,24 @@ function update() {
 
   for (let i = 0; i < burgers.length; i++) {
     let b = burgers[i];
+
+    /* LIFE TIMER */
+    if (!b.fading) {
+      b.life++;
+      if (b.life >= b.targetLife) {
+        b.fading = true;
+
+        // score when successfully kept alive
+        score += b.golden ? 10 : 1;
+      }
+    } else {
+      b.alpha -= 0.02;
+      if (b.alpha <= 0) {
+        burgers.splice(i, 1);
+        i--;
+        continue;
+      }
+    }
 
     b.vy += gravity;
     b.vx *= 0.999;
@@ -128,9 +171,15 @@ function update() {
       b.vx *= -0.7;
     }
 
+    /* FALL = MISS */
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
+
+      misses++;
+      if (misses >= 3) {
+        gameOver = true;
+      }
       continue;
     }
 
@@ -150,11 +199,11 @@ function update() {
 
       let slope = Math.sin(pan.angle);
 
-      /* BOUNCE INSTEAD OF STICK */
-      b.vy *= -0.6; // bounce upward
-      b.vx += slope * 2; // slight horizontal push from angle
+      /* BOUNCE */
+      b.vy *= -0.6;
+      b.vx += slope * 2;
 
-      /* FLIP BOOST */
+      /* FLIP */
       if (pan.vy < -2) {
         b.vy = -10;
         b.vx += slope * 7;
@@ -206,9 +255,6 @@ function update() {
         a.vy += impulse * ny;
         b.vx -= impulse * nx;
         b.vy -= impulse * ny;
-
-        a.vx *= 0.98;
-        b.vx *= 0.98;
       }
     }
   }
@@ -248,6 +294,8 @@ function drawPan() {
 
 function drawBurger(b) {
   ctx.save();
+  ctx.globalAlpha = b.alpha;
+
   ctx.translate(b.x, b.y);
   ctx.rotate(b.angle);
 
@@ -275,6 +323,20 @@ function drawParticles() {
   }
 }
 
+function drawUI() {
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 20, 30);
+  ctx.fillText("Misses: " + misses + "/3", 20, 60);
+
+  if (gameOver) {
+    ctx.font = "40px Arial";
+    ctx.fillText("GAME OVER", window.innerWidth / 2 - 120, window.innerHeight / 2);
+    ctx.font = "20px Arial";
+    ctx.fillText("Press R to Restart", window.innerWidth / 2 - 90, window.innerHeight / 2 + 40);
+  }
+}
+
 /* LOOP */
 function loop() {
   let dx = (Math.random() - 0.5) * shake;
@@ -293,6 +355,7 @@ function loop() {
   }
 
   drawParticles();
+  drawUI();
 
   requestAnimationFrame(loop);
 }
