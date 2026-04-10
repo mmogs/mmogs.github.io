@@ -18,14 +18,11 @@ resizeCanvas();
 
 /* SETTINGS */
 let gravity = 0.35;
-let score = 0;
-let canScore = false;
 
 let shake = 0;
 let particles = [];
 
-/* SPAWN SYSTEM (SLOWER) */
-let spawnInterval = 360; // 🔥 doubled from 180
+let spawnInterval = 360;
 let spawnCounter = 0;
 
 /* PAN */
@@ -106,8 +103,6 @@ function update() {
   if (spawnCounter >= spawnInterval) {
     burgers.push(spawnBurger());
     spawnCounter = 0;
-
-    // difficulty still ramps but slower overall
     spawnInterval = Math.max(120, spawnInterval - 2);
   }
 
@@ -136,8 +131,6 @@ function update() {
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
-      score = 0;
-      document.getElementById("score").textContent = "Score: 0";
       continue;
     }
 
@@ -157,14 +150,11 @@ function update() {
 
       let slope = Math.sin(pan.angle);
 
-      if (pan.vy >= 0) {
-        b.vy = 0;
-        b.angularVelocity *= 0.5;
-        b.vx += gravity * slope;
-        b.vx *= 0.98;
-        canScore = false;
-      }
+      /* BOUNCE INSTEAD OF STICK */
+      b.vy *= -0.6; // bounce upward
+      b.vx += slope * 2; // slight horizontal push from angle
 
+      /* FLIP BOOST */
       if (pan.vy < -2) {
         b.vy = -10;
         b.vx += slope * 7;
@@ -178,14 +168,6 @@ function update() {
           spawnParticles(b.x, b.y);
           shake = 8;
         }
-
-        canScore = true;
-      }
-
-      if (canScore && Math.abs(b.angularVelocity) < 0.25 && pan.vy >= 0) {
-        score += b.golden ? 5 : 1;
-        document.getElementById("score").textContent = "Score: " + score;
-        canScore = false;
       }
     }
   }
