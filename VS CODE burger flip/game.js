@@ -22,7 +22,8 @@ let gravity = 0.35;
 let shake = 0;
 let particles = [];
 
-let spawnInterval = 360;
+let baseSpawnInterval = 360;
+let spawnInterval = baseSpawnInterval;
 let spawnCounter = 0;
 
 let score = 0;
@@ -35,6 +36,8 @@ let pan = {
   y: window.innerHeight - 120,
   width: 160,
   height: 10,
+  handleWidth: 60,
+  handleHeight: 20,
   angle: -0.2,
   angularVelocity: 0,
   vy: 0
@@ -56,7 +59,7 @@ function spawnBurger() {
     golden: Math.random() < 0.01,
 
     life: 0,
-    targetLife: 300 + Math.random() * 300, // 5–10 sec (60fps)
+    targetLife: 300 + Math.random() * 300,
     fading: false,
     alpha: 1
   };
@@ -112,12 +115,15 @@ function restartGame() {
   score = 0;
   misses = 0;
   gameOver = false;
-  spawnInterval = 360;
+  spawnInterval = baseSpawnInterval;
 }
 
 /* UPDATE */
 function update() {
   if (gameOver) return;
+
+  /* Dynamic difficulty */
+  spawnInterval = Math.max(90, baseSpawnInterval - score * 5);
 
   pan.angle += pan.angularVelocity;
   pan.angularVelocity *= 0.9;
@@ -128,19 +134,16 @@ function update() {
   if (spawnCounter >= spawnInterval) {
     burgers.push(spawnBurger());
     spawnCounter = 0;
-    spawnInterval = Math.max(120, spawnInterval - 2);
   }
 
   for (let i = 0; i < burgers.length; i++) {
     let b = burgers[i];
 
-    /* LIFE TIMER */
+    /* LIFE */
     if (!b.fading) {
       b.life++;
       if (b.life >= b.targetLife) {
         b.fading = true;
-
-        // score when successfully kept alive
         score += b.golden ? 10 : 1;
       }
     } else {
@@ -171,15 +174,11 @@ function update() {
       b.vx *= -0.7;
     }
 
-    /* FALL = MISS */
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
-
       misses++;
-      if (misses >= 3) {
-        gameOver = true;
-      }
+      if (misses >= 3) gameOver = true;
       continue;
     }
 
@@ -188,22 +187,20 @@ function update() {
 
     let surfaceY = pan.y + Math.sin(pan.angle) * (b.x - pan.x);
 
-    let touching =
+    let touchingPan =
       b.y + b.radius > surfaceY &&
       b.y < surfaceY + 15 &&
       b.x > panLeft &&
       b.x < panRight;
 
-    if (touching && b.vy >= 0) {
+    if (touchingPan && b.vy >= 0) {
       b.y = surfaceY - b.radius;
 
       let slope = Math.sin(pan.angle);
 
-      /* BOUNCE */
       b.vy *= -0.6;
       b.vx += slope * 2;
 
-      /* FLIP */
       if (pan.vy < -2) {
         b.vy = -10;
         b.vx += slope * 7;
@@ -219,9 +216,28 @@ function update() {
         }
       }
     }
+
+    /* HANDLE HITBOX */
+    let handleX = pan.x + Math.cos(pan.angle) * (pan.width / 2 + pan.handleWidth / 2);
+    let handleY = pan.y + Math.sin(pan.angle) * (pan.width / 2 + pan.handleWidth / 2) - 5;
+
+    let dx = b.x - handleX;
+    let dy = b.y - handleY;
+    let dist = Math.hypot(dx, dy);
+
+    if (dist < b.radius + pan.handleHeight / 2) {
+      let nx = dx / dist;
+      let ny = dy / dist;
+
+      b.x = handleX + nx * (b.radius + pan.handleHeight / 2);
+      b.y = handleY + ny * (b.radius + pan.handleHeight / 2);
+
+      b.vx += nx * 2;
+      b.vy += ny * 2;
+    }
   }
 
-  /* COLLISIONS */
+  /* BURGER COLLISIONS */
   for (let i = 0; i < burgers.length; i++) {
     for (let j = i + 1; j < burgers.length; j++) {
       let a = burgers[i];
@@ -287,7 +303,7 @@ function drawPan() {
   ctx.fillRect(-pan.width / 2, 0, pan.width, pan.height);
 
   ctx.fillStyle = "dimgray";
-  ctx.fillRect(pan.width / 2, -5, 60, 20);
+  ctx.fillRect(pan.width / 2, -5, pan.handleWidth, pan.handleHeight);
 
   ctx.restore();
 }
@@ -343,17 +359,12 @@ function loop() {
   let dy = (Math.random() - 0.5) * shake;
 
   ctx.setTransform(1, 0, 0, 1, dx, dy);
-
   ctx.clearRect(-dx, -dy, window.innerWidth, window.innerHeight);
 
   update();
 
   drawPan();
-
-  for (let b of burgers) {
-    drawBurger(b);
-  }
-
+  for (let b of burgers) drawBurger(b);
   drawParticles();
   drawUI();
 
