@@ -1,7 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-/* FULLSCREEN */
+/* FULLSCREEN (NO STRETCH, HIGH DPI FIX) */
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
 
@@ -30,10 +30,6 @@ let score = 0;
 let misses = 0;
 let gameOver = false;
 
-/* PERFECT TIMING */
-let lastFlipTime = 0;
-const PERFECT_WINDOW = 120;
-
 /* PAN */
 let pan = {
   x: window.innerWidth / 2,
@@ -59,7 +55,7 @@ function spawnBurger() {
     vy: 0,
     radius: 20,
     angle: 0,
-    angularVelocity: (Math.random() - 0.5) * 0.2,
+    angularVelocity: (Math.random() - 0.5) * 0.1,
     golden: Math.random() < 0.01,
 
     life: 0,
@@ -70,36 +66,46 @@ function spawnBurger() {
 }
 
 /* PARTICLES */
-function spawnParticles(x, y, color = "orange", count = 10) {
-  for (let i = 0; i < count; i++) {
+function spawnParticles(x, y) {
+  for (let i = 0; i < 10; i++) {
     particles.push({
       x,
       y,
       vx: (Math.random() - 0.5) * 5,
       vy: (Math.random() - 1.5) * 5,
-      life: 30,
-      color
+      life: 30
     });
   }
 }
 
 /* INPUT */
-canvas.addEventListener("mousemove", (e) => {
+function getMousePos(e) {
   const rect = canvas.getBoundingClientRect();
-  pan.x = e.clientX - rect.left;
-  pan.y = e.clientY - rect.top;
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+}
+
+canvas.addEventListener("mousemove", (e) => {
+  const pos = getMousePos(e);
+  pan.x = pos.x;
+  pan.y = pos.y;
 });
 
+/* KEYS */
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     e.preventDefault();
     if (!gameOver) {
       pan.vy = -12;
       pan.angularVelocity = 0.35;
-      lastFlipTime = performance.now();
     }
   }
-  if (e.code === "KeyR") restartGame();
+
+  if (e.code === "KeyR") {
+    restartGame();
+  }
 });
 
 /* RESTART */
@@ -109,12 +115,14 @@ function restartGame() {
   score = 0;
   misses = 0;
   gameOver = false;
+  spawnInterval = baseSpawnInterval;
 }
 
 /* UPDATE */
 function update() {
   if (gameOver) return;
 
+  /* Dynamic difficulty */
   spawnInterval = Math.max(90, baseSpawnInterval - score * 5);
 
   pan.angle += pan.angularVelocity;
@@ -148,11 +156,23 @@ function update() {
     }
 
     b.vy += gravity;
+    b.vx *= 0.999;
+    b.vy *= 0.999;
+
     b.x += b.vx;
     b.y += b.vy;
 
     b.angle += b.angularVelocity;
     b.angularVelocity *= 0.995;
+
+    if (b.x < b.radius) {
+      b.x = b.radius;
+      b.vx *= -0.7;
+    }
+    if (b.x > window.innerWidth - b.radius) {
+      b.x = window.innerWidth - b.radius;
+      b.vx *= -0.7;
+    }
 
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
@@ -167,33 +187,90 @@ function update() {
 
     let surfaceY = pan.y + Math.sin(pan.angle) * (b.x - pan.x);
 
-    let touching =
+    let touchingPan =
       b.y + b.radius > surfaceY &&
       b.y < surfaceY + 15 &&
       b.x > panLeft &&
       b.x < panRight;
 
-    if (touching && b.vy >= 0) {
+    if (touchingPan && b.vy >= 0) {
       b.y = surfaceY - b.radius;
 
       let slope = Math.sin(pan.angle);
-      let now = performance.now();
-      let isPerfect = now - lastFlipTime < PERFECT_WINDOW;
 
-      if (isPerfect) {
-        // 🔥 subtle boost (not huge)
-        b.vy = -12;
-        b.vx += slope * 6;
-        b.angularVelocity += slope * 0.4;
+      b.vy *= -0.6;
+      b.vx += slope * 2;
 
-        // normal particles + small blue bonus
-        spawnParticles(b.x, b.y, "orange", 10);
-        spawnParticles(b.x, b.y, "cyan", 6);
+      if (pan.vy < -2) {
+        b.vy = -10;
+        b.vx += slope * 7;
+        b.angularVelocity += slope * 0.35;
 
-        shake = 10;
-      } else {
-        b.vy *= -0.6;
-        b.vx += slope * 2;
+        if (b.golden) {
+          spawnParticles(b.x, b.y);
+          spawnParticles(b.x, b.y);
+          shake = 12;
+        } else {
+          spawnParticles(b.x, b.y);
+          shake = 8;
+        }
+      }
+    }
+
+    /* HANDLE HITBOX */
+    let handleX = pan.x + Math.cos(pan.angle) * (pan.width / 2 + pan.handleWidth / 2);
+    let handleY = pan.y + Math.sin(pan.angle) * (pan.width / 2 + pan.handleWidth / 2) - 5;
+
+    let dx = b.x - handleX;
+    let dy = b.y - handleY;
+    let dist = Math.hypot(dx, dy);
+
+    if (dist < b.radius + pan.handleHeight / 2) {
+      let nx = dx / dist;
+      let ny = dy / dist;
+
+      b.x = handleX + nx * (b.radius + pan.handleHeight / 2);
+      b.y = handleY + ny * (b.radius + pan.handleHeight / 2);
+
+      b.vx += nx * 2;
+      b.vy += ny * 2;
+    }
+  }
+
+  /* BURGER COLLISIONS */
+  for (let i = 0; i < burgers.length; i++) {
+    for (let j = i + 1; j < burgers.length; j++) {
+      let a = burgers[i];
+      let b = burgers[j];
+
+      let dx = b.x - a.x;
+      let dy = b.y - a.y;
+      let dist = Math.hypot(dx, dy);
+      let minDist = a.radius + b.radius;
+
+      if (dist < minDist && dist > 0) {
+        let nx = dx / dist;
+        let ny = dy / dist;
+
+        let overlap = minDist - dist;
+
+        a.x -= nx * overlap * 0.4;
+        a.y -= ny * overlap * 0.6;
+        b.x += nx * overlap * 0.4;
+        b.y += ny * overlap * 0.6;
+
+        let dvx = b.vx - a.vx;
+        let dvy = b.vy - a.vy;
+
+        let impact = dvx * nx + dvy * ny;
+        if (impact > 0) continue;
+
+        let impulse = impact * 0.6;
+
+        a.vx += impulse * nx;
+        a.vy += impulse * ny;
+        b.vx -= impulse * nx;
+        b.vy -= impulse * ny;
       }
     }
   }
@@ -201,6 +278,7 @@ function update() {
   /* PARTICLES */
   for (let i = 0; i < particles.length; i++) {
     let p = particles[i];
+
     p.x += p.vx;
     p.y += p.vy;
     p.vy += 0.2;
@@ -237,9 +315,14 @@ function drawBurger(b) {
   ctx.translate(b.x, b.y);
   ctx.rotate(b.angle);
 
+  let stretch = 1 + Math.min(Math.abs(b.vy) * 0.02, 0.3);
+  ctx.scale(1 / stretch, stretch);
+
   if (b.golden) {
     ctx.shadowColor = "gold";
     ctx.shadowBlur = 25;
+  } else {
+    ctx.shadowBlur = 0;
   }
 
   ctx.fillStyle = b.golden ? "gold" : "saddlebrown";
@@ -250,8 +333,8 @@ function drawBurger(b) {
 }
 
 function drawParticles() {
+  ctx.fillStyle = "orange";
   for (let p of particles) {
-    ctx.fillStyle = p.color;
     ctx.fillRect(p.x, p.y, 4, 4);
   }
 }
@@ -281,7 +364,7 @@ function loop() {
   update();
 
   drawPan();
-  burgers.forEach(drawBurger);
+  for (let b of burgers) drawBurger(b);
   drawParticles();
   drawUI();
 
