@@ -30,6 +30,10 @@ let score = 0;
 let misses = 0;
 let gameOver = false;
 
+/* PERFECT TIMING */
+let lastFlipTime = 0;
+const PERFECT_WINDOW = 120;
+
 /* PAN */
 let pan = {
   x: window.innerWidth / 2,
@@ -66,14 +70,15 @@ function spawnBurger() {
 }
 
 /* PARTICLES */
-function spawnParticles(x, y) {
-  for (let i = 0; i < 10; i++) {
+function spawnParticles(x, y, color = "orange", count = 10) {
+  for (let i = 0; i < count; i++) {
     particles.push({
       x,
       y,
       vx: (Math.random() - 0.5) * 5,
       vy: (Math.random() - 1.5) * 5,
-      life: 30
+      life: 30,
+      color
     });
   }
 }
@@ -100,6 +105,8 @@ document.addEventListener("keydown", (e) => {
     if (!gameOver) {
       pan.vy = -12;
       pan.angularVelocity = 0.35;
+
+      lastFlipTime = performance.now(); // 🔥 track timing
     }
   }
 
@@ -198,22 +205,31 @@ function update() {
 
       let slope = Math.sin(pan.angle);
 
-      b.vy *= -0.6;
-      b.vx += slope * 2;
+      let now = performance.now();
+      let isPerfect = now - lastFlipTime < PERFECT_WINDOW;
 
       if (pan.vy < -2) {
+        // 🔥 NORMAL FLIP (unchanged feel)
         b.vy = -10;
         b.vx += slope * 7;
         b.angularVelocity += slope * 0.35;
 
-        if (b.golden) {
-          spawnParticles(b.x, b.y);
-          spawnParticles(b.x, b.y);
-          shake = 12;
+        // 🔥 PERFECT BONUS (subtle)
+        if (isPerfect) {
+          b.vy -= 2; // small extra boost ONLY
+          b.angularVelocity += 0.2;
+
+          spawnParticles(b.x, b.y, "orange", 10);
+          spawnParticles(b.x, b.y, "cyan", 5);
         } else {
-          spawnParticles(b.x, b.y);
-          shake = 8;
+          spawnParticles(b.x, b.y, "orange", 10);
         }
+
+        shake = 8;
+      } else {
+        // normal bounce
+        b.vy *= -0.6;
+        b.vx += slope * 2;
       }
     }
 
@@ -333,8 +349,8 @@ function drawBurger(b) {
 }
 
 function drawParticles() {
-  ctx.fillStyle = "orange";
   for (let p of particles) {
+    ctx.fillStyle = p.color;
     ctx.fillRect(p.x, p.y, 4, 4);
   }
 }
