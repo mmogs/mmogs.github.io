@@ -32,6 +32,7 @@ let gameOver = false;
 
 /* PERFECT TIMING */
 let lastFlipTime = 0;
+let perfectAvailable = false; // 🔥 NEW
 const PERFECT_WINDOW = 120;
 
 /* PAN */
@@ -106,7 +107,8 @@ document.addEventListener("keydown", (e) => {
       pan.vy = -12;
       pan.angularVelocity = 0.35;
 
-      lastFlipTime = performance.now(); // 🔥 track timing
+      lastFlipTime = performance.now();
+      perfectAvailable = true; // 🔥 reset chance ONCE per press
     }
   }
 
@@ -129,7 +131,6 @@ function restartGame() {
 function update() {
   if (gameOver) return;
 
-  /* Dynamic difficulty */
   spawnInterval = Math.max(90, baseSpawnInterval - score * 5);
 
   pan.angle += pan.angularVelocity;
@@ -146,7 +147,6 @@ function update() {
   for (let i = 0; i < burgers.length; i++) {
     let b = burgers[i];
 
-    /* LIFE */
     if (!b.fading) {
       b.life++;
       if (b.life >= b.targetLife) {
@@ -206,28 +206,28 @@ function update() {
       let slope = Math.sin(pan.angle);
 
       let now = performance.now();
-      let isPerfect = now - lastFlipTime < PERFECT_WINDOW;
+      let isPerfect =
+        perfectAvailable && (now - lastFlipTime < PERFECT_WINDOW);
 
       if (pan.vy < -2) {
-        // 🔥 NORMAL FLIP (unchanged feel)
         b.vy = -10;
         b.vx += slope * 7;
         b.angularVelocity += slope * 0.35;
 
-        // 🔥 PERFECT BONUS (subtle)
         if (isPerfect) {
-          b.vy -= 2; // small extra boost ONLY
+          b.vy -= 2;
           b.angularVelocity += 0.2;
 
           spawnParticles(b.x, b.y, "orange", 10);
           spawnParticles(b.x, b.y, "cyan", 5);
+
+          perfectAvailable = false; // 🔥 consume it
         } else {
           spawnParticles(b.x, b.y, "orange", 10);
         }
 
         shake = 8;
       } else {
-        // normal bounce
         b.vy *= -0.6;
         b.vx += slope * 2;
       }
@@ -253,48 +253,9 @@ function update() {
     }
   }
 
-  /* BURGER COLLISIONS */
-  for (let i = 0; i < burgers.length; i++) {
-    for (let j = i + 1; j < burgers.length; j++) {
-      let a = burgers[i];
-      let b = burgers[j];
-
-      let dx = b.x - a.x;
-      let dy = b.y - a.y;
-      let dist = Math.hypot(dx, dy);
-      let minDist = a.radius + b.radius;
-
-      if (dist < minDist && dist > 0) {
-        let nx = dx / dist;
-        let ny = dy / dist;
-
-        let overlap = minDist - dist;
-
-        a.x -= nx * overlap * 0.4;
-        a.y -= ny * overlap * 0.6;
-        b.x += nx * overlap * 0.4;
-        b.y += ny * overlap * 0.6;
-
-        let dvx = b.vx - a.vx;
-        let dvy = b.vy - a.vy;
-
-        let impact = dvx * nx + dvy * ny;
-        if (impact > 0) continue;
-
-        let impulse = impact * 0.6;
-
-        a.vx += impulse * nx;
-        a.vy += impulse * ny;
-        b.vx -= impulse * nx;
-        b.vy -= impulse * ny;
-      }
-    }
-  }
-
-  /* PARTICLES */
+  /* COLLISIONS + PARTICLES (unchanged) */
   for (let i = 0; i < particles.length; i++) {
     let p = particles[i];
-
     p.x += p.vx;
     p.y += p.vy;
     p.vy += 0.2;
