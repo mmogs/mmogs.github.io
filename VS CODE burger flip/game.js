@@ -21,6 +21,7 @@ let gravity = 0.35;
 
 let shake = 0;
 let particles = [];
+let popups = [];
 
 let baseSpawnInterval = 360;
 let spawnInterval = baseSpawnInterval;
@@ -30,9 +31,9 @@ let score = 0;
 let misses = 0;
 let gameOver = false;
 
-/* PERFECT TIMING WINDOW */
+/* PERFECT TIMING */
 let lastFlipTime = 0;
-const PERFECT_WINDOW = 120; // ms
+const PERFECT_WINDOW = 150; // bigger window so you can feel it
 
 /* PAN */
 let pan = {
@@ -70,16 +71,27 @@ function spawnBurger() {
 }
 
 /* PARTICLES */
-function spawnParticles(x, y) {
-  for (let i = 0; i < 10; i++) {
+function spawnParticles(x, y, color = "orange", count = 10) {
+  for (let i = 0; i < count; i++) {
     particles.push({
       x,
       y,
-      vx: (Math.random() - 0.5) * 5,
-      vy: (Math.random() - 1.5) * 5,
-      life: 30
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 1.5) * 6,
+      life: 30,
+      color
     });
   }
+}
+
+/* POPUP TEXT */
+function spawnPopup(text, x, y) {
+  popups.push({
+    text,
+    x,
+    y,
+    life: 40
+  });
 }
 
 /* INPUT */
@@ -89,18 +101,15 @@ canvas.addEventListener("mousemove", (e) => {
   pan.y = e.clientY - rect.top;
 });
 
-/* KEYS */
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     e.preventDefault();
     if (!gameOver) {
       pan.vy = -12;
       pan.angularVelocity = 0.35;
-
-      lastFlipTime = performance.now(); // 🔥 track timing
+      lastFlipTime = performance.now();
     }
   }
-
   if (e.code === "KeyR") restartGame();
 });
 
@@ -108,6 +117,7 @@ document.addEventListener("keydown", (e) => {
 function restartGame() {
   burgers = [spawnBurger()];
   particles = [];
+  popups = [];
   score = 0;
   misses = 0;
   gameOver = false;
@@ -133,7 +143,6 @@ function update() {
   for (let i = 0; i < burgers.length; i++) {
     let b = burgers[i];
 
-    /* LIFE */
     if (!b.fading) {
       b.life++;
       if (b.life >= b.targetLife) {
@@ -176,18 +185,17 @@ function update() {
       b.y = surfaceY - b.radius;
 
       let slope = Math.sin(pan.angle);
-
-      /* PERFECT TIMING CHECK */
       let now = performance.now();
       let isPerfect = now - lastFlipTime < PERFECT_WINDOW;
 
       if (isPerfect) {
-        b.vy = -16; // 🔥 BIG BOOST
-        b.vx += slope * 10;
-        shake = 14;
+        b.vy = -20; // VERY noticeable boost
+        b.vx += slope * 12;
 
-        spawnParticles(b.x, b.y);
-        spawnParticles(b.x, b.y);
+        spawnParticles(b.x, b.y, "cyan", 20);
+        spawnPopup("PERFECT!", b.x, b.y);
+
+        shake = 16;
       } else {
         b.vy *= -0.6;
         b.vx += slope * 2;
@@ -205,6 +213,18 @@ function update() {
 
     if (p.life <= 0) {
       particles.splice(i, 1);
+      i--;
+    }
+  }
+
+  /* POPUPS */
+  for (let i = 0; i < popups.length; i++) {
+    let p = popups[i];
+    p.y -= 1;
+    p.life--;
+
+    if (p.life <= 0) {
+      popups.splice(i, 1);
       i--;
     }
   }
@@ -246,9 +266,17 @@ function drawBurger(b) {
 }
 
 function drawParticles() {
-  ctx.fillStyle = "orange";
   for (let p of particles) {
+    ctx.fillStyle = p.color;
     ctx.fillRect(p.x, p.y, 4, 4);
+  }
+}
+
+function drawPopups() {
+  ctx.fillStyle = "cyan";
+  ctx.font = "bold 20px Arial";
+  for (let p of popups) {
+    ctx.fillText(p.text, p.x - 40, p.y);
   }
 }
 
@@ -279,6 +307,7 @@ function loop() {
   drawPan();
   burgers.forEach(drawBurger);
   drawParticles();
+  drawPopups();
   drawUI();
 
   requestAnimationFrame(loop);
