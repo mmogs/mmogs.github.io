@@ -69,7 +69,7 @@ function spawnBurger() {
     mini: false,
 
     life: 0,
-    targetLife: isBomb ? 600 : 300 + Math.random() * 300, // bomb = 10s
+    targetLife: isBomb ? 600 : 300 + Math.random() * 300,
     fading: false,
     alpha: 1
   };
@@ -171,6 +171,7 @@ function update() {
     spawnCounter = 0;
   }
 
+  /* --- BURGER PHYSICS --- */
   for (let i = 0; i < burgers.length; i++) {
     let b = burgers[i];
 
@@ -179,10 +180,8 @@ function update() {
       b.life++;
 
       if (b.bomb && b.life >= b.targetLife) {
-        // 💥 explode
         spawnParticles(b.x, b.y, "red", 30);
         spawnParticles(b.x, b.y, "orange", 30);
-
         spawnMiniBurgers(b.x, b.y);
 
         score += 5;
@@ -216,6 +215,16 @@ function update() {
     b.angle += b.angularVelocity;
     b.angularVelocity *= 0.995;
 
+    /* WALLS */
+    if (b.x < b.radius) {
+      b.x = b.radius;
+      b.vx *= -0.7;
+    }
+    if (b.x > window.innerWidth - b.radius) {
+      b.x = window.innerWidth - b.radius;
+      b.vx *= -0.7;
+    }
+
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
@@ -224,13 +233,12 @@ function update() {
         misses++;
         if (misses >= 3) gameOver = true;
       }
-
       continue;
     }
 
+    /* PAN COLLISION */
     let panLeft = pan.x - pan.width / 2;
     let panRight = pan.x + pan.width / 2;
-
     let surfaceY = pan.y + Math.sin(pan.angle) * (b.x - pan.x);
 
     let touching =
@@ -255,10 +263,8 @@ function update() {
         if (isPerfect) {
           b.vy -= 2;
           b.angularVelocity += 0.2;
-
           spawnParticles(b.x, b.y, "orange", 10);
           spawnParticles(b.x, b.y, "cyan", 5);
-
           perfectAvailable = false;
         } else {
           spawnParticles(b.x, b.y, "orange", 10);
@@ -268,6 +274,44 @@ function update() {
       } else {
         b.vy *= -0.6;
         b.vx += slope * 2;
+      }
+    }
+  }
+
+  /* --- BURGER TO BURGER COLLISION (RESTORED) --- */
+  for (let i = 0; i < burgers.length; i++) {
+    for (let j = i + 1; j < burgers.length; j++) {
+      let a = burgers[i];
+      let b = burgers[j];
+
+      let dx = b.x - a.x;
+      let dy = b.y - a.y;
+      let dist = Math.hypot(dx, dy);
+      let minDist = a.radius + b.radius;
+
+      if (dist < minDist && dist > 0) {
+        let nx = dx / dist;
+        let ny = dy / dist;
+
+        let overlap = minDist - dist;
+
+        a.x -= nx * overlap * 0.4;
+        a.y -= ny * overlap * 0.6;
+        b.x += nx * overlap * 0.4;
+        b.y += ny * overlap * 0.6;
+
+        let dvx = b.vx - a.vx;
+        let dvy = b.vy - a.vy;
+
+        let impact = dvx * nx + dvy * ny;
+        if (impact > 0) continue;
+
+        let impulse = impact * 0.6;
+
+        a.vx += impulse * nx;
+        a.vy += impulse * ny;
+        b.vx -= impulse * nx;
+        b.vy -= impulse * ny;
       }
     }
   }
@@ -289,7 +333,7 @@ function update() {
   shake *= 0.9;
 }
 
-/* DRAW */
+/* DRAW + LOOP (same as before) */
 function drawPan() {
   ctx.save();
   ctx.translate(pan.x, pan.y);
@@ -360,7 +404,6 @@ function drawUI() {
   }
 }
 
-/* LOOP */
 function loop() {
   let dx = (Math.random() - 0.5) * shake;
   let dy = (Math.random() - 0.5) * shake;
