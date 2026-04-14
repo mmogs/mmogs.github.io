@@ -53,6 +53,7 @@ let burgers = [spawnBurger()];
 /* SPAWN */
 function spawnBurger() {
   const isBomb = Math.random() < 0.05;
+  const isBalloon = !isBomb && Math.random() < 0.05;
 
   return {
     x: window.innerWidth / 2,
@@ -64,7 +65,8 @@ function spawnBurger() {
     angularVelocity: (Math.random() - 0.5) * 0.1,
 
     bomb: isBomb,
-    golden: !isBomb && Math.random() < 0.01,
+    balloon: isBalloon,
+    golden: !isBomb && !isBalloon && Math.random() < 0.01,
 
     life: 0,
     targetLife: isBomb ? 600 : 300 + Math.random() * 300,
@@ -84,10 +86,9 @@ function spawnMiniBurgers(x, y) {
       radius: 15,
       angle: 0,
       angularVelocity: (Math.random() - 0.5) * 0.3,
-
       bomb: false,
+      balloon: false,
       golden: false,
-
       life: 0,
       targetLife: 180,
       fading: false,
@@ -191,7 +192,13 @@ function update() {
       }
     }
 
-    b.vy += gravity;
+    /* 🎈 BALLOON PHYSICS */
+    if (b.balloon) {
+      b.vy -= gravity * 0.6; // float up
+    } else {
+      b.vy += gravity;
+    }
+
     b.vx *= 0.999;
     b.vy *= 0.999;
 
@@ -201,7 +208,7 @@ function update() {
     b.angle += b.angularVelocity;
     b.angularVelocity *= 0.995;
 
-    /* 🔥 WALLS (disabled for bombs) */
+    /* WALLS (not for bombs) */
     if (!b.bomb) {
       if (b.x < b.radius) {
         b.x = b.radius;
@@ -213,21 +220,17 @@ function update() {
       }
     }
 
-    /* 💣 REMOVE BOMB IF OFF SCREEN (SAFE) */
-    if (
-      b.bomb &&
-      (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
-    ) {
+    /* REMOVE BOMB OFFSCREEN */
+    if (b.bomb && (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)) {
       burgers.splice(i, 1);
       i--;
       continue;
     }
 
-    /* NORMAL MISS */
-    if (b.y > window.innerHeight) {
+    /* MISS */
+    if (b.y > window.innerHeight || b.y < -100) {
       burgers.splice(i, 1);
       i--;
-
       misses++;
       if (misses >= 3) gameOver = true;
       continue;
@@ -244,24 +247,22 @@ function update() {
       b.x > panLeft &&
       b.x < panRight;
 
-    if (touching && b.vy >= 0) {
-      b.y = surfaceY - b.radius;
-
+    if (touching) {
       let slope = Math.sin(pan.angle);
       let now = performance.now();
-      let isPerfect =
-        perfectAvailable && (now - lastFlipTime < PERFECT_WINDOW);
+      let isPerfect = perfectAvailable && (now - lastFlipTime < PERFECT_WINDOW);
 
-      if (pan.vy < -2) {
+      if (b.balloon) {
+        // hit downward
+        b.vy = 6;
+        b.vx += slope * 3;
+      } else if (pan.vy < -2) {
         b.vy = -10;
         b.vx += slope * 7;
         b.angularVelocity += slope * 0.35;
 
         if (isPerfect) {
-          b.vy -= 2;
-          b.angularVelocity += 0.2;
-          spawnParticles(b.x, b.y, "orange", 10);
-          spawnParticles(b.x, b.y, "cyan", 5);
+          spawnParticles(b.x, b.y, "cyan", 6);
           perfectAvailable = false;
         } else {
           spawnParticles(b.x, b.y, "orange", 10);
@@ -275,7 +276,7 @@ function update() {
     }
   }
 
-  /* BURGER COLLISIONS */
+  /* BURGER COLLISION */
   for (let i = 0; i < burgers.length; i++) {
     for (let j = i + 1; j < burgers.length; j++) {
       let a = burgers[i];
@@ -356,64 +357,33 @@ function drawBurger(b) {
     ctx.beginPath();
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.strokeStyle = "orange";
+  } else if (b.balloon) {
+    ctx.fillStyle = "pink";
     ctx.beginPath();
-    ctx.moveTo(0, -20);
-    ctx.lineTo(5, -30);
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "white";
+    ctx.beginPath();
+    ctx.moveTo(0, 20);
+    ctx.lineTo(0, 35);
     ctx.stroke();
   } else {
-    let stretch = 1 + Math.min(Math.abs(b.vy) * 0.02, 0.3);
-    ctx.scale(1 / stretch, stretch);
-
-    if (b.golden) {
-      ctx.shadowColor = "gold";
-      ctx.shadowBlur = 25;
-    }
-
     ctx.fillStyle = b.golden ? "gold" : "saddlebrown";
     ctx.fillRect(-30, -20, 60, 40);
   }
 
   ctx.restore();
-  ctx.shadowBlur = 0;
-}
-
-function drawParticles() {
-  for (let p of particles) {
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, 4, 4);
-  }
-}
-
-function drawUI() {
-  ctx.fillStyle = "black";
-  ctx.font = "20px Arial";
-  ctx.fillText("Score: " + score, 20, 30);
-  ctx.fillText("Misses: " + misses + "/3", 20, 60);
-
-  if (gameOver) {
-    ctx.font = "40px Arial";
-    ctx.fillText("GAME OVER", window.innerWidth / 2 - 120, window.innerHeight / 2);
-    ctx.font = "20px Arial";
-    ctx.fillText("Press R to Restart", window.innerWidth / 2 - 90, window.innerHeight / 2 + 40);
-  }
 }
 
 /* LOOP */
 function loop() {
-  let dx = (Math.random() - 0.5) * shake;
-  let dy = (Math.random() - 0.5) * shake;
-
-  ctx.setTransform(1, 0, 0, 1, dx, dy);
-  ctx.clearRect(-dx, -dy, window.innerWidth, window.innerHeight);
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
   update();
 
   drawPan();
   for (let b of burgers) drawBurger(b);
-  drawParticles();
-  drawUI();
 
   requestAnimationFrame(loop);
 }
