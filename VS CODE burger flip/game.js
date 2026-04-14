@@ -50,14 +50,16 @@ let pan = {
 /* BURGERS */
 let burgers = [spawnBurger()];
 
-/* SPAWN */
 function spawnBurger() {
   const isBomb = Math.random() < 0.05;
   const isBalloon = !isBomb && Math.random() < 0.05;
 
   return {
     x: window.innerWidth / 2,
-    y: 60,
+
+    // 🎈 spawn position fix
+    y: isBalloon ? window.innerHeight - 80 : 60,
+
     vx: (Math.random() - 0.5) * 2,
     vy: 0,
     radius: 20,
