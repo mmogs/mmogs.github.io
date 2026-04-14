@@ -53,7 +53,7 @@ let burgers = [spawnBurger()];
 
 /* SPAWN */
 function spawnBurger() {
-  const isBomb = Math.random() < 0.03;
+  const isBomb = Math.random() < 0.05;
 
   return {
     x: window.innerWidth / 2,
@@ -66,7 +66,6 @@ function spawnBurger() {
 
     bomb: isBomb,
     golden: !isBomb && Math.random() < 0.01,
-    mini: false,
 
     life: 0,
     targetLife: isBomb ? 600 : 300 + Math.random() * 300,
@@ -89,7 +88,6 @@ function spawnMiniBurgers(x, y) {
 
       bomb: false,
       golden: false,
-      mini: true,
 
       life: 0,
       targetLife: 180,
@@ -171,7 +169,6 @@ function update() {
     spawnCounter = 0;
   }
 
-  /* --- BURGER PHYSICS --- */
   for (let i = 0; i < burgers.length; i++) {
     let b = burgers[i];
 
@@ -180,11 +177,11 @@ function update() {
       b.life++;
 
       if (b.bomb && b.life >= b.targetLife) {
+        // 💥 explosion penalty
         spawnParticles(b.x, b.y, "red", 30);
         spawnParticles(b.x, b.y, "orange", 30);
         spawnMiniBurgers(b.x, b.y);
 
-        score += 5;
         shake = 15;
 
         burgers.splice(i, 1);
@@ -194,7 +191,7 @@ function update() {
 
       if (!b.bomb && b.life >= b.targetLife) {
         b.fading = true;
-        if (!b.mini) score += b.golden ? 10 : 1;
+        score += b.golden ? 10 : 1;
       }
     } else {
       b.alpha -= 0.02;
@@ -225,14 +222,14 @@ function update() {
       b.vx *= -0.7;
     }
 
+    /* OUT OF BOUNDS */
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
 
-      if (!b.mini) {
-        misses++;
-        if (misses >= 3) gameOver = true;
-      }
+      misses++;
+      if (misses >= 3) gameOver = true;
+
       continue;
     }
 
@@ -278,7 +275,7 @@ function update() {
     }
   }
 
-  /* --- BURGER TO BURGER COLLISION (RESTORED) --- */
+  /* BURGER COLLISIONS */
   for (let i = 0; i < burgers.length; i++) {
     for (let j = i + 1; j < burgers.length; j++) {
       let a = burgers[i];
@@ -292,7 +289,6 @@ function update() {
       if (dist < minDist && dist > 0) {
         let nx = dx / dist;
         let ny = dy / dist;
-
         let overlap = minDist - dist;
 
         a.x -= nx * overlap * 0.4;
@@ -333,7 +329,7 @@ function update() {
   shake *= 0.9;
 }
 
-/* DRAW + LOOP (same as before) */
+/* DRAW */
 function drawPan() {
   ctx.save();
   ctx.translate(pan.x, pan.y);
@@ -404,6 +400,7 @@ function drawUI() {
   }
 }
 
+/* LOOP */
 function loop() {
   let dx = (Math.random() - 0.5) * shake;
   let dy = (Math.random() - 0.5) * shake;
