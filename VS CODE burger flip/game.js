@@ -1,7 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-/* FULLSCREEN (NO STRETCH, HIGH DPI FIX) */
+/* FULLSCREEN */
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
 
@@ -18,7 +18,6 @@ resizeCanvas();
 
 /* SETTINGS */
 let gravity = 0.35;
-
 let shake = 0;
 let particles = [];
 
@@ -30,7 +29,7 @@ let score = 0;
 let misses = 0;
 let gameOver = false;
 
-/* PERFECT TIMING */
+/* PERFECT */
 let lastFlipTime = 0;
 let perfectAvailable = false;
 const PERFECT_WINDOW = 120;
@@ -74,7 +73,7 @@ function spawnBurger() {
   };
 }
 
-/* MINI BURGER SPAWN */
+/* MINI BURGERS */
 function spawnMiniBurgers(x, y) {
   for (let i = 0; i < 5; i++) {
     burgers.push({
@@ -112,18 +111,10 @@ function spawnParticles(x, y, color = "orange", count = 10) {
 }
 
 /* INPUT */
-function getMousePos(e) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top
-  };
-}
-
 canvas.addEventListener("mousemove", (e) => {
-  const pos = getMousePos(e);
-  pan.x = pos.x;
-  pan.y = pos.y;
+  const rect = canvas.getBoundingClientRect();
+  pan.x = e.clientX - rect.left;
+  pan.y = e.clientY - rect.top;
 });
 
 /* KEYS */
@@ -177,11 +168,9 @@ function update() {
       b.life++;
 
       if (b.bomb && b.life >= b.targetLife) {
-        // 💥 explosion penalty
         spawnParticles(b.x, b.y, "red", 30);
         spawnParticles(b.x, b.y, "orange", 30);
         spawnMiniBurgers(b.x, b.y);
-
         shake = 15;
 
         burgers.splice(i, 1);
@@ -212,24 +201,35 @@ function update() {
     b.angle += b.angularVelocity;
     b.angularVelocity *= 0.995;
 
-    /* WALLS */
-    if (b.x < b.radius) {
-      b.x = b.radius;
-      b.vx *= -0.7;
-    }
-    if (b.x > window.innerWidth - b.radius) {
-      b.x = window.innerWidth - b.radius;
-      b.vx *= -0.7;
+    /* 🔥 WALLS (disabled for bombs) */
+    if (!b.bomb) {
+      if (b.x < b.radius) {
+        b.x = b.radius;
+        b.vx *= -0.7;
+      }
+      if (b.x > window.innerWidth - b.radius) {
+        b.x = window.innerWidth - b.radius;
+        b.vx *= -0.7;
+      }
     }
 
-    /* OUT OF BOUNDS */
+    /* 💣 REMOVE BOMB IF OFF SCREEN (SAFE) */
+    if (
+      b.bomb &&
+      (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
+    ) {
+      burgers.splice(i, 1);
+      i--;
+      continue;
+    }
+
+    /* NORMAL MISS */
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
 
       misses++;
       if (misses >= 3) gameOver = true;
-
       continue;
     }
 
