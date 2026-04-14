@@ -50,16 +50,13 @@ let pan = {
 /* BURGERS */
 let burgers = [spawnBurger()];
 
+/* SPAWN */
 function spawnBurger() {
   const isBomb = Math.random() < 0.05;
-  const isBalloon = !isBomb && Math.random() < 0.05;
 
   return {
     x: window.innerWidth / 2,
-
-    // 🎈 spawn position fix
-    y: isBalloon ? window.innerHeight - 80 : 60,
-
+    y: 60,
     vx: (Math.random() - 0.5) * 2,
     vy: 0,
     radius: 20,
@@ -67,8 +64,7 @@ function spawnBurger() {
     angularVelocity: (Math.random() - 0.5) * 0.1,
 
     bomb: isBomb,
-    balloon: isBalloon,
-    golden: !isBomb && !isBalloon && Math.random() < 0.01,
+    golden: !isBomb && Math.random() < 0.01,
 
     life: 0,
     targetLife: isBomb ? 600 : 300 + Math.random() * 300,
@@ -88,9 +84,10 @@ function spawnMiniBurgers(x, y) {
       radius: 15,
       angle: 0,
       angularVelocity: (Math.random() - 0.5) * 0.3,
+
       bomb: false,
-      balloon: false,
       golden: false,
+
       life: 0,
       targetLife: 180,
       fading: false,
@@ -194,13 +191,7 @@ function update() {
       }
     }
 
-    /* 🎈 BALLOON PHYSICS */
-    if (b.balloon) {
-      b.vy -= gravity * 0.6; // float up
-    } else {
-      b.vy += gravity;
-    }
-
+    b.vy += gravity;
     b.vx *= 0.999;
     b.vy *= 0.999;
 
@@ -210,7 +201,7 @@ function update() {
     b.angle += b.angularVelocity;
     b.angularVelocity *= 0.995;
 
-    /* WALLS (not for bombs) */
+    /* 🔥 WALLS (disabled for bombs) */
     if (!b.bomb) {
       if (b.x < b.radius) {
         b.x = b.radius;
@@ -222,17 +213,21 @@ function update() {
       }
     }
 
-    /* REMOVE BOMB OFFSCREEN */
-    if (b.bomb && (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)) {
+    /* 💣 REMOVE BOMB IF OFF SCREEN (SAFE) */
+    if (
+      b.bomb &&
+      (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
+    ) {
       burgers.splice(i, 1);
       i--;
       continue;
     }
 
-    /* MISS */
-    if (b.y > window.innerHeight || b.y < -100) {
+    /* NORMAL MISS */
+    if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
+
       misses++;
       if (misses >= 3) gameOver = true;
       continue;
@@ -249,22 +244,24 @@ function update() {
       b.x > panLeft &&
       b.x < panRight;
 
-    if (touching) {
+    if (touching && b.vy >= 0) {
+      b.y = surfaceY - b.radius;
+
       let slope = Math.sin(pan.angle);
       let now = performance.now();
-      let isPerfect = perfectAvailable && (now - lastFlipTime < PERFECT_WINDOW);
+      let isPerfect =
+        perfectAvailable && (now - lastFlipTime < PERFECT_WINDOW);
 
-      if (b.balloon) {
-        // hit downward
-        b.vy = 6;
-        b.vx += slope * 3;
-      } else if (pan.vy < -2) {
+      if (pan.vy < -2) {
         b.vy = -10;
         b.vx += slope * 7;
         b.angularVelocity += slope * 0.35;
 
         if (isPerfect) {
-          spawnParticles(b.x, b.y, "cyan", 6);
+          b.vy -= 2;
+          b.angularVelocity += 0.2;
+          spawnParticles(b.x, b.y, "orange", 10);
+          spawnParticles(b.x, b.y, "cyan", 5);
           perfectAvailable = false;
         } else {
           spawnParticles(b.x, b.y, "orange", 10);
@@ -278,7 +275,7 @@ function update() {
     }
   }
 
-  /* BURGER COLLISION */
+  /* BURGER COLLISIONS */
   for (let i = 0; i < burgers.length; i++) {
     for (let j = i + 1; j < burgers.length; j++) {
       let a = burgers[i];
@@ -359,33 +356,64 @@ function drawBurger(b) {
     ctx.beginPath();
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
     ctx.fill();
-  } else if (b.balloon) {
-    ctx.fillStyle = "pink";
-    ctx.beginPath();
-    ctx.arc(0, 0, 20, 0, Math.PI * 2);
-    ctx.fill();
 
-    ctx.strokeStyle = "white";
+    ctx.strokeStyle = "orange";
     ctx.beginPath();
-    ctx.moveTo(0, 20);
-    ctx.lineTo(0, 35);
+    ctx.moveTo(0, -20);
+    ctx.lineTo(5, -30);
     ctx.stroke();
   } else {
+    let stretch = 1 + Math.min(Math.abs(b.vy) * 0.02, 0.3);
+    ctx.scale(1 / stretch, stretch);
+
+    if (b.golden) {
+      ctx.shadowColor = "gold";
+      ctx.shadowBlur = 25;
+    }
+
     ctx.fillStyle = b.golden ? "gold" : "saddlebrown";
     ctx.fillRect(-30, -20, 60, 40);
   }
 
   ctx.restore();
+  ctx.shadowBlur = 0;
+}
+
+function drawParticles() {
+  for (let p of particles) {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, 4, 4);
+  }
+}
+
+function drawUI() {
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 20, 30);
+  ctx.fillText("Misses: " + misses + "/3", 20, 60);
+
+  if (gameOver) {
+    ctx.font = "40px Arial";
+    ctx.fillText("GAME OVER", window.innerWidth / 2 - 120, window.innerHeight / 2);
+    ctx.font = "20px Arial";
+    ctx.fillText("Press R to Restart", window.innerWidth / 2 - 90, window.innerHeight / 2 + 40);
+  }
 }
 
 /* LOOP */
 function loop() {
-  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  let dx = (Math.random() - 0.5) * shake;
+  let dy = (Math.random() - 0.5) * shake;
+
+  ctx.setTransform(1, 0, 0, 1, dx, dy);
+  ctx.clearRect(-dx, -dy, window.innerWidth, window.innerHeight);
 
   update();
 
   drawPan();
   for (let b of burgers) drawBurger(b);
+  drawParticles();
+  drawUI();
 
   requestAnimationFrame(loop);
 }
