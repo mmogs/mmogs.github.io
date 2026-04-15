@@ -39,6 +39,9 @@
   justify-content: center;
 }
 
+image {
+  margin-top: 10px;
+}
 
 @media (max-width: 600px) {
   .navbar ul {
