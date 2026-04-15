@@ -61,7 +61,7 @@ function spawnBurger() {
     vx: (Math.random() - 0.5) * 2,
     vy: 0,
 
-    radius: isGiant ? 30 : 20, // ✅ 1.5x size
+    radius: isGiant ? 30 : 20,
 
     angle: 0,
     angularVelocity: (Math.random() - 0.5) * 0.1,
@@ -194,7 +194,6 @@ function update() {
       }
     }
 
-    /* ⚖️ Slightly heavier (not extreme) */
     let appliedGravity = b.giant ? gravity * 1.15 : gravity;
 
     b.vy += appliedGravity;
@@ -243,7 +242,7 @@ function update() {
       continue;
     }
 
-    /* PAN */
+    /* PAN COLLISION */
     let panLeft = pan.x - pan.width / 2;
     let panRight = pan.x + pan.width / 2;
     let surfaceY = pan.y + Math.sin(pan.angle) * (b.x - pan.x);
@@ -359,6 +358,23 @@ function drawBurger(b) {
 
   ctx.translate(b.x, b.y);
   ctx.rotate(b.angle);
+
+  if (b.bomb) {
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "orange";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -b.radius);
+    ctx.lineTo(5, -b.radius - 10);
+    ctx.stroke();
+
+    ctx.restore();
+    return;
+  }
 
   let stretch = 1 + Math.min(Math.abs(b.vy) * 0.02, 0.3);
   ctx.scale(1 / stretch, stretch);
