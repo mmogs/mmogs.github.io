@@ -61,7 +61,7 @@ function spawnBurger() {
     vx: (Math.random() - 0.5) * 2,
     vy: 0,
 
-    radius: isGiant ? 50 : 20, // 2.5x size
+    radius: isGiant ? 30 : 20, // ✅ 1.5x size
 
     angle: 0,
     angularVelocity: (Math.random() - 0.5) * 0.1,
@@ -88,11 +88,9 @@ function spawnMiniBurgers(x, y) {
       radius: 15,
       angle: 0,
       angularVelocity: (Math.random() - 0.5) * 0.3,
-
       bomb: false,
       giant: false,
       golden: false,
-
       life: 0,
       targetLife: 180,
       fading: false,
@@ -185,9 +183,7 @@ function update() {
 
       if (!b.bomb && b.life >= b.targetLife) {
         b.fading = true;
-
-        if (b.giant) score += 2;
-        else score += b.golden ? 10 : 1;
+        score += b.giant ? 2 : b.golden ? 10 : 1;
       }
     } else {
       b.alpha -= 0.02;
@@ -198,8 +194,8 @@ function update() {
       }
     }
 
-    /* HEAVIER PHYSICS */
-    let appliedGravity = b.giant ? gravity * 1.6 : gravity;
+    /* ⚖️ Slightly heavier (not extreme) */
+    let appliedGravity = b.giant ? gravity * 1.15 : gravity;
 
     b.vy += appliedGravity;
     b.vx *= 0.999;
@@ -223,7 +219,7 @@ function update() {
       }
     }
 
-    /* REMOVE BOMB OFFSCREEN (reward) */
+    /* BOMB OFFSCREEN */
     if (
       b.bomb &&
       (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
@@ -247,7 +243,7 @@ function update() {
       continue;
     }
 
-    /* PAN COLLISION */
+    /* PAN */
     let panLeft = pan.x - pan.width / 2;
     let panRight = pan.x + pan.width / 2;
     let surfaceY = pan.y + Math.sin(pan.angle) * (b.x - pan.x);
@@ -267,21 +263,22 @@ function update() {
         perfectAvailable && (now - lastFlipTime < PERFECT_WINDOW);
 
       if (pan.vy < -2) {
-        b.vy = b.giant ? -7 : -10; // less bounce for giant
-        b.vx += slope * (b.giant ? 5 : 7);
+        b.vy = b.giant ? -9 : -10;
+        b.vx += slope * (b.giant ? 6 : 7);
         b.angularVelocity += slope * 0.35;
 
         if (isPerfect) {
           b.vy -= 2;
+          spawnParticles(b.x, b.y, "orange", 10);
           spawnParticles(b.x, b.y, "cyan", 5);
           perfectAvailable = false;
         } else {
           spawnParticles(b.x, b.y, "orange", 10);
         }
 
-        shake = b.giant ? 12 : 8;
+        shake = 8;
       } else {
-        b.vy *= b.giant ? -0.4 : -0.6;
+        b.vy *= b.giant ? -0.5 : -0.6;
         b.vx += slope * 2;
       }
     }
