@@ -53,18 +53,22 @@ let burgers = [spawnBurger()];
 /* SPAWN */
 function spawnBurger() {
   const isBomb = Math.random() < 0.05;
+  const isGiant = !isBomb && Math.random() < 0.03;
 
   return {
     x: window.innerWidth / 2,
     y: 60,
     vx: (Math.random() - 0.5) * 2,
     vy: 0,
-    radius: 20,
+
+    radius: isGiant ? 50 : 20, // 2.5x size
+
     angle: 0,
     angularVelocity: (Math.random() - 0.5) * 0.1,
 
     bomb: isBomb,
-    golden: !isBomb && Math.random() < 0.01,
+    giant: isGiant,
+    golden: !isBomb && !isGiant && Math.random() < 0.01,
 
     life: 0,
     targetLife: isBomb ? 600 : 300 + Math.random() * 300,
@@ -86,6 +90,7 @@ function spawnMiniBurgers(x, y) {
       angularVelocity: (Math.random() - 0.5) * 0.3,
 
       bomb: false,
+      giant: false,
       golden: false,
 
       life: 0,
@@ -180,7 +185,9 @@ function update() {
 
       if (!b.bomb && b.life >= b.targetLife) {
         b.fading = true;
-        score += b.golden ? 10 : 1;
+
+        if (b.giant) score += 2;
+        else score += b.golden ? 10 : 1;
       }
     } else {
       b.alpha -= 0.02;
@@ -191,7 +198,10 @@ function update() {
       }
     }
 
-    b.vy += gravity;
+    /* HEAVIER PHYSICS */
+    let appliedGravity = b.giant ? gravity * 1.6 : gravity;
+
+    b.vy += appliedGravity;
     b.vx *= 0.999;
     b.vy *= 0.999;
 
@@ -201,7 +211,7 @@ function update() {
     b.angle += b.angularVelocity;
     b.angularVelocity *= 0.995;
 
-    /* 🔥 WALLS (disabled for bombs) */
+    /* WALLS */
     if (!b.bomb) {
       if (b.x < b.radius) {
         b.x = b.radius;
@@ -213,23 +223,21 @@ function update() {
       }
     }
 
-    /* 💣 REMOVE BOMB IF OFF SCREEN (SAFE) */
+    /* REMOVE BOMB OFFSCREEN (reward) */
     if (
-  b.bomb &&
-  (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
-) {
-  // ✅ reward player for ejecting bomb
-  score += 1;
+      b.bomb &&
+      (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
+    ) {
+      score += 1;
+      spawnParticles(b.x, b.y, "yellow", 12);
+      shake = 6;
 
-  spawnParticles(b.x, b.y, "yellow", 12); // nice feedback
-  shake = 6;
+      burgers.splice(i, 1);
+      i--;
+      continue;
+    }
 
-  burgers.splice(i, 1);
-  i--;
-  continue;
-}
-
-    /* NORMAL MISS */
+    /* MISS */
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
       i--;
@@ -259,29 +267,27 @@ function update() {
         perfectAvailable && (now - lastFlipTime < PERFECT_WINDOW);
 
       if (pan.vy < -2) {
-        b.vy = -10;
-        b.vx += slope * 7;
+        b.vy = b.giant ? -7 : -10; // less bounce for giant
+        b.vx += slope * (b.giant ? 5 : 7);
         b.angularVelocity += slope * 0.35;
 
         if (isPerfect) {
           b.vy -= 2;
-          b.angularVelocity += 0.2;
-          spawnParticles(b.x, b.y, "orange", 10);
           spawnParticles(b.x, b.y, "cyan", 5);
           perfectAvailable = false;
         } else {
           spawnParticles(b.x, b.y, "orange", 10);
         }
 
-        shake = 8;
+        shake = b.giant ? 12 : 8;
       } else {
-        b.vy *= -0.6;
+        b.vy *= b.giant ? -0.4 : -0.6;
         b.vx += slope * 2;
       }
     }
   }
 
-  /* BURGER COLLISIONS */
+  /* COLLISIONS */
   for (let i = 0; i < burgers.length; i++) {
     for (let j = i + 1; j < burgers.length; j++) {
       let a = burgers[i];
@@ -357,29 +363,21 @@ function drawBurger(b) {
   ctx.translate(b.x, b.y);
   ctx.rotate(b.angle);
 
-  if (b.bomb) {
-    ctx.fillStyle = "black";
-    ctx.beginPath();
-    ctx.arc(0, 0, 20, 0, Math.PI * 2);
-    ctx.fill();
+  let stretch = 1 + Math.min(Math.abs(b.vy) * 0.02, 0.3);
+  ctx.scale(1 / stretch, stretch);
 
-    ctx.strokeStyle = "orange";
-    ctx.beginPath();
-    ctx.moveTo(0, -20);
-    ctx.lineTo(5, -30);
-    ctx.stroke();
-  } else {
-    let stretch = 1 + Math.min(Math.abs(b.vy) * 0.02, 0.3);
-    ctx.scale(1 / stretch, stretch);
-
-    if (b.golden) {
-      ctx.shadowColor = "gold";
-      ctx.shadowBlur = 25;
-    }
-
-    ctx.fillStyle = b.golden ? "gold" : "saddlebrown";
-    ctx.fillRect(-30, -20, 60, 40);
+  if (b.golden) {
+    ctx.shadowColor = "gold";
+    ctx.shadowBlur = 25;
   }
+
+  ctx.fillStyle = b.giant
+    ? "darkred"
+    : b.golden
+    ? "gold"
+    : "saddlebrown";
+
+  ctx.fillRect(-b.radius * 1.5, -b.radius, b.radius * 3, b.radius * 2);
 
   ctx.restore();
   ctx.shadowBlur = 0;
