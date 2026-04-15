@@ -219,19 +219,32 @@ function update() {
     }
 
     /* BOMB OFFSCREEN */
-    if (
-      b.bomb &&
-      (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
-    ) {
-      score += 1;
-      spawnParticles(b.x, b.y, "yellow", 12);
-      shake = 6;
+   if (b.bomb) {
 
-      burgers.splice(i, 1);
-      i--;
-      continue;
-    }
+  // ✅ LEFT / RIGHT = SUCCESS
+  if (b.x < -50 || b.x > window.innerWidth + 50) {
+    score += 1;
+    spawnParticles(b.x, b.y, "yellow", 12);
+    shake = 6;
 
+    burgers.splice(i, 1);
+    i--;
+    continue;
+  }
+
+  // ❌ BOTTOM = MISS
+  if (b.y > window.innerHeight) {
+    misses++;
+    if (misses >= 3) gameOver = true;
+
+    spawnParticles(b.x, b.y, "red", 15);
+    shake = 10;
+
+    burgers.splice(i, 1);
+    i--;
+    continue;
+  }
+}
     /* MISS */
     if (b.y > window.innerHeight) {
       burgers.splice(i, 1);
