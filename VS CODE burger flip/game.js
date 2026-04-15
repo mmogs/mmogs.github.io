@@ -215,13 +215,19 @@ function update() {
 
     /* 💣 REMOVE BOMB IF OFF SCREEN (SAFE) */
     if (
-      b.bomb &&
-      (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
-    ) {
-      burgers.splice(i, 1);
-      i--;
-      continue;
-    }
+  b.bomb &&
+  (b.x < -50 || b.x > window.innerWidth + 50 || b.y > window.innerHeight)
+) {
+  // ✅ reward player for ejecting bomb
+  score += 1;
+
+  spawnParticles(b.x, b.y, "yellow", 12); // nice feedback
+  shake = 6;
+
+  burgers.splice(i, 1);
+  i--;
+  continue;
+}
 
     /* NORMAL MISS */
     if (b.y > window.innerHeight) {
