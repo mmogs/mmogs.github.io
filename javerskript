@@ -1,0 +1,19 @@
+const el = document.getElementById("wobble");
+
+el.addEventListener("mousemove", (e) => {
+  const rect = el.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const centerX = rect.width / 2;
+  const centerY = rect.height / 2;
+
+  const rotateX = (y - centerY) / 5;
+  const rotateY = (centerX - x) / 5;
+
+  el.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+});
+
+el.addEventListener("mouseleave", () => {
+  el.style.transform = "rotateX(0deg) rotateY(0deg)";
+});

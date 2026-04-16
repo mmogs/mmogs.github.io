@@ -38,6 +38,10 @@
   flex-direction: column;
   justify-content: center;
 }
+#wobble {
+  display: inline-block;
+  transition: transform 0.05s linear;
+}
 
 img {
   display: block;
