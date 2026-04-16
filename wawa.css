@@ -41,7 +41,10 @@
 
 img {
   display: block;
+  margin-top: 20px;
   margin-bottom: 20px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (max-width: 600px) {
@@ -52,5 +55,6 @@ img {
   .navbar a {
     display: block;
     margin: 0.5rem 0;
+    
   }
 }
