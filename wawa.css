@@ -11,24 +11,28 @@
   transform-origin: center;
 }
 
-/* NAVBAR */
-.navbar {
-  position: sticky;
-  top: 0;
-  background: #333;
-  z-index: 1000;
-}
-
 .nav-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center; /* centers everything */
   align-items: center;
   padding: 1rem;
+  position: relative;
 }
 
-.logo {
+/* center links */
+.nav-links {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+}
+
+/* keep hamburger on the right */
+.menu-toggle {
+  position: absolute;
+  right: 1rem;
   color: white;
-  font-weight: bold;
+  font-size: 1.5rem;
+  cursor: pointer;
 }
 
 /* LINKS */
