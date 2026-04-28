@@ -238,7 +238,7 @@ function update() {
     if (misses >= 3) gameOver = true;
 
     spawnParticles(b.x, b.y, "red", 15);
-    shake = 10;
+    shake = 100;
 
     burgers.splice(i, 1);
     i--;
@@ -351,7 +351,7 @@ function update() {
 }
 
 /* DRAW */
-function drawPan() {
+function drawPan() { 
   ctx.save();
   ctx.translate(pan.x, pan.y);
   ctx.rotate(pan.angle);
