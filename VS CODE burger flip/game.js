@@ -100,7 +100,7 @@ function spawnMiniBurgers(x, y) {
 }
 
 /* PARTICLES */
-function spawnParticles(x, y, color = "orange", count = 10) {
+function spawnParticles(x, y, color = "orange", count = 1000) {
   for (let i = 0; i < count; i++) {
     particles.push({
       x,
@@ -238,7 +238,7 @@ function update() {
     if (misses >= 3) gameOver = true;
 
     spawnParticles(b.x, b.y, "red", 15);
-    shake = 100;
+    shake = 10;
 
     burgers.splice(i, 1);
     i--;
