@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>3D Rubik's Cube</title>
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    color: white;
+    text-align: center;
+    font-family: Arial;
+  }
+
+  #scene {
+    width: 400px;
+    height: 400px;
+    margin: 40px auto;
+    perspective: 800px;
+  }
+
+  #cube {
+    width: 150px;
+    height: 150px;
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateX(-30deg) rotateY(30deg);
+    margin: auto;
+  }
+
+  .face {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+
+  .sticker {
+    width: 100%;
+    height: 100%;
+  }
+
+  .U { transform: rotateX(90deg) translateZ(75px); }
+  .D { transform: rotateX(-90deg) translateZ(75px); }
+  .F { transform: translateZ(75px); }
+  .B { transform: rotateY(180deg) translateZ(75px); }
+  .L { transform: rotateY(-90deg) translateZ(75px); }
+  .R { transform: rotateY(90deg) translateZ(75px); }
+
+  button {
+    margin: 5px;
+    padding: 8px 12px;
+  }
+</style>
+</head>
+<body>
+
+<h2>3D Rubik's Cube (Drag to Rotate)</h2>
+
+<div id="scene">
+  <div id="cube"></div>
+</div>
+
+<div>
+  <button onclick="move('U')">U</button>
+  <button onclick="move('D')">D</button>
+  <button onclick="move('L')">L</button>
+  <button onclick="move('R')">R</button>
+  <button onclick="move('F')">F</button>
+  <button onclick="move('B')">B</button>
+  <button onclick="scramble()">Scramble</button>
+</div>
+
+<script>
+const colors = {
+  U: "white",
+  D: "yellow",
+  F: "green",
+  B: "blue",
+  L: "orange",
+  R: "red"
+};
+
+let cubeState = {
+  U: Array(9).fill(colors.U),
+  D: Array(9).fill(colors.D),
+  F: Array(9).fill(colors.F),
+  B: Array(9).fill(colors.B),
+  L: Array(9).fill(colors.L),
+  R: Array(9).fill(colors.R),
+};
+
+function rotateFace(face) {
+  const c = cubeState[face];
+  cubeState[face] = [c[6],c[3],c[0],c[7],c[4],c[1],c[8],c[5],c[2]];
+}
+
+// same move logic as before
+function move(m) {
+  rotateFace(m);
+  let t;
+
+  if (m==="U"){
+    t=cubeState.F.slice(0,3);
+    cubeState.F.splice(0,3,...cubeState.R.slice(0,3));
+    cubeState.R.splice(0,3,...cubeState.B.slice(0,3));
+    cubeState.B.splice(0,3,...cubeState.L.slice(0,3));
+    cubeState.L.splice(0,3,...t);
+  }
+
+  if (m==="D"){
+    t=cubeState.F.slice(6,9);
+    cubeState.F.splice(6,3,...cubeState.L.slice(6,9));
+    cubeState.L.splice(6,3,...cubeState.B.slice(6,9));
+    cubeState.B.splice(6,3,...cubeState.R.slice(6,9));
+    cubeState.R.splice(6,3,...t);
+  }
+
+  if (m==="F"){
+    t=[cubeState.U[6],cubeState.U[7],cubeState.U[8]];
+    [cubeState.U[6],cubeState.U[7],cubeState.U[8]]=[cubeState.L[8],cubeState.L[5],cubeState.L[2]];
+    [cubeState.L[2],cubeState.L[5],cubeState.L[8]]=[cubeState.D[2],cubeState.D[1],cubeState.D[0]];
+    [cubeState.D[0],cubeState.D[1],cubeState.D[2]]=[cubeState.R[6],cubeState.R[3],cubeState.R[0]];
+    [cubeState.R[0],cubeState.R[3],cubeState.R[6]]=t;
+  }
+
+  if (m==="B"){
+    t=[cubeState.U[0],cubeState.U[1],cubeState.U[2]];
+    [cubeState.U[0],cubeState.U[1],cubeState.U[2]]=[cubeState.R[2],cubeState.R[5],cubeState.R[8]];
+    [cubeState.R[2],cubeState.R[5],cubeState.R[8]]=[cubeState.D[8],cubeState.D[7],cubeState.D[6]];
+    [cubeState.D[6],cubeState.D[7],cubeState.D[8]]=[cubeState.L[0],cubeState.L[3],cubeState.L[6]];
+    [cubeState.L[0],cubeState.L[3],cubeState.L[6]]=t;
+  }
+
+  if (m==="L"){
+    t=[cubeState.U[0],cubeState.U[3],cubeState.U[6]];
+    [cubeState.U[0],cubeState.U[3],cubeState.U[6]]=[cubeState.B[8],cubeState.B[5],cubeState.B[2]];
+    [cubeState.B[2],cubeState.B[5],cubeState.B[8]]=[cubeState.D[0],cubeState.D[3],cubeState.D[6]];
+    [cubeState.D[0],cubeState.D[3],cubeState.D[6]]=[cubeState.F[0],cubeState.F[3],cubeState.F[6]];
+    [cubeState.F[0],cubeState.F[3],cubeState.F[6]]=t;
+  }
+
+  if (m==="R"){
+    t=[cubeState.U[2],cubeState.U[5],cubeState.U[8]];
+    [cubeState.U[2],cubeState.U[5],cubeState.U[8]]=[cubeState.F[2],cubeState.F[5],cubeState.F[8]];
+    [cubeState.F[2],cubeState.F[5],cubeState.F[8]]=[cubeState.D[2],cubeState.D[5],cubeState.D[8]];
+    [cubeState.D[2],cubeState.D[5],cubeState.D[8]]=[cubeState.B[6],cubeState.B[3],cubeState.B[0]];
+    [cubeState.B[0],cubeState.B[3],cubeState.B[6]]=t;
+  }
+
+  render();
+}
+
+function scramble(){
+  const m=["U","D","L","R","F","B"];
+  for(let i=0;i<20;i++) move(m[Math.floor(Math.random()*6)]);
+}
+
+function render(){
+  const cube=document.getElementById("cube");
+  cube.innerHTML="";
+
+  for (let face in cubeState){
+    const faceDiv=document.createElement("div");
+    faceDiv.className="face "+face;
+
+    cubeState[face].forEach(color=>{
+      const s=document.createElement("div");
+      s.className="sticker";
+      s.style.background=color;
+      faceDiv.appendChild(s);
+    });
+
+    cube.appendChild(faceDiv);
+  }
+}
+
+// drag rotation
+let isDragging=false, lastX=0, lastY=0;
+let rotX=-30, rotY=30;
+
+const cubeEl=document.getElementById("cube");
+
+document.addEventListener("mousedown",(e)=>{
+  isDragging=true;
+  lastX=e.clientX;
+  lastY=e.clientY;
+});
+
+document.addEventListener("mouseup",()=>isDragging=false);
+
+document.addEventListener("mousemove",(e)=>{
+  if(!isDragging) return;
+
+  let dx=e.clientX-lastX;
+  let dy=e.clientY-lastY;
+
+  rotY+=dx*0.5;
+  rotX-=dy*0.5;
+
+  cubeEl.style.transform=`rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+
+  lastX=e.clientX;
+  lastY=e.clientY;
+});
+
+render();
+</script>
+
+</body>
+</html>
