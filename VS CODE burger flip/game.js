@@ -100,7 +100,7 @@ function spawnMiniBurgers(x, y) {
 }
 
 /* PARTICLES */
-function spawnParticles(x, y, color = "orange", count = 1000) {
+function spawnParticles(x, y, color = "orange", count = 10) {
   for (let i = 0; i < count; i++) {
     particles.push({
       x,
