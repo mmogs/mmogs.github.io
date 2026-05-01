@@ -2,216 +2,175 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>3D Rubik's Cube</title>
+<title>Pro Rubik's Cube</title>
 <style>
-  body {
-    margin: 0;
-    background: #111;
-    color: white;
-    text-align: center;
-    font-family: Arial;
-  }
-
-  #scene {
-    width: 400px;
-    height: 400px;
-    margin: 40px auto;
-    perspective: 800px;
-  }
-
-  #cube {
-    width: 150px;
-    height: 150px;
-    position: relative;
-    transform-style: preserve-3d;
-    transform: rotateX(-30deg) rotateY(30deg);
-    margin: auto;
-  }
-
-  .face {
-    position: absolute;
-    width: 150px;
-    height: 150px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2px;
-  }
-
-  .sticker {
-    width: 100%;
-    height: 100%;
-  }
-
-  .U { transform: rotateX(90deg) translateZ(75px); }
-  .D { transform: rotateX(-90deg) translateZ(75px); }
-  .F { transform: translateZ(75px); }
-  .B { transform: rotateY(180deg) translateZ(75px); }
-  .L { transform: rotateY(-90deg) translateZ(75px); }
-  .R { transform: rotateY(90deg) translateZ(75px); }
-
-  button {
-    margin: 5px;
-    padding: 8px 12px;
+  body { margin:0; overflow:hidden; background:#111; }
+  #info {
+    position:absolute; top:10px; left:10px;
+    color:white; font-family:Arial;
   }
 </style>
 </head>
 <body>
+<div id="info">Drag = rotate view | Drag face = turn | WASD = move</div>
 
-<h2>3D Rubik's Cube (Drag to Rotate)</h2>
-
-<div id="scene">
-  <div id="cube"></div>
-</div>
-
-<div>
-  <button onclick="move('U')">U</button>
-  <button onclick="move('D')">D</button>
-  <button onclick="move('L')">L</button>
-  <button onclick="move('R')">R</button>
-  <button onclick="move('F')">F</button>
-  <button onclick="move('B')">B</button>
-  <button onclick="scramble()">Scramble</button>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 
 <script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(4,4,6);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(5,5,5);
+scene.add(light);
+
 const colors = {
-  U: "white",
-  D: "yellow",
-  F: "green",
-  B: "blue",
-  L: "orange",
-  R: "red"
+  U: 0xffffff,
+  D: 0xffff00,
+  F: 0x00ff00,
+  B: 0x0000ff,
+  L: 0xff8800,
+  R: 0xff0000
 };
 
-let cubeState = {
-  U: Array(9).fill(colors.U),
-  D: Array(9).fill(colors.D),
-  F: Array(9).fill(colors.F),
-  B: Array(9).fill(colors.B),
-  L: Array(9).fill(colors.L),
-  R: Array(9).fill(colors.R),
-};
+// build 27 cubies
+const cubies = [];
+const size = 0.98;
 
-let hoveredFace = null;
+for (let x=-1;x<=1;x++){
+for (let y=-1;y<=1;y++){
+for (let z=-1;z<=1;z++){
 
-function rotateFace(face) {
-  const c = cubeState[face];
-  cubeState[face] = [c[6],c[3],c[0],c[7],c[4],c[1],c[8],c[5],c[2]];
+  const geo = new THREE.BoxGeometry(size,size,size);
+  const mats = [
+    new THREE.MeshBasicMaterial({color: x===1?colors.R:0x222222}),
+    new THREE.MeshBasicMaterial({color: x===-1?colors.L:0x222222}),
+    new THREE.MeshBasicMaterial({color: y===1?colors.U:0x222222}),
+    new THREE.MeshBasicMaterial({color: y===-1?colors.D:0x222222}),
+    new THREE.MeshBasicMaterial({color: z===1?colors.F:0x222222}),
+    new THREE.MeshBasicMaterial({color: z===-1?colors.B:0x222222}),
+  ];
+
+  const cube = new THREE.Mesh(geo, mats);
+  cube.position.set(x,y,z);
+  scene.add(cube);
+  cubies.push(cube);
+
+}}}
+
+// camera drag
+let isDragging=false, prev={x:0,y:0};
+
+document.addEventListener("mousedown",e=>{
+  isDragging=true;
+  prev.x=e.clientX; prev.y=e.clientY;
+});
+document.addEventListener("mouseup",()=>isDragging=false);
+
+document.addEventListener("mousemove",e=>{
+  if(!isDragging) return;
+  let dx=e.clientX-prev.x;
+  let dy=e.clientY-prev.y;
+
+  scene.rotation.y += dx*0.005;
+  scene.rotation.x += dy*0.005;
+
+  prev.x=e.clientX; prev.y=e.clientY;
+});
+
+// raycasting
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hovered = null;
+
+document.addEventListener("mousemove",e=>{
+  mouse.x = (e.clientX / innerWidth)*2-1;
+  mouse.y = -(e.clientY / innerHeight)*2+1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(cubies);
+
+  hovered = hits.length ? hits[0] : null;
+});
+
+// rotate layer
+function rotateLayer(axis, index, dir){
+  const group = new THREE.Group();
+  scene.add(group);
+
+  cubies.forEach(c=>{
+    if(Math.round(c.position[axis])===index){
+      group.attach(c);
+    }
+  });
+
+  let angle = (Math.PI/2)*dir;
+
+  const start = performance.now();
+  function anim(t){
+    let p = Math.min((t-start)/150,1);
+    group.rotation[axis] = angle*p;
+
+    if(p<1){
+      requestAnimationFrame(anim);
+    } else {
+      group.children.slice().forEach(c=>{
+        scene.attach(c);
+      });
+      scene.remove(group);
+    }
+  }
+  requestAnimationFrame(anim);
 }
 
-// simplified directional mapping
-function move(face, dir) {
-  // map WASD into actual cube moves depending on face
-  const map = {
-    F: { w:"U", s:"D", a:"L", d:"R" },
-    B: { w:"U", s:"D", a:"R", d:"L" },
-    U: { w:"B", s:"F", a:"L", d:"R" },
-    D: { w:"F", s:"B", a:"L", d:"R" },
-    L: { w:"U", s:"D", a:"B", d:"F" },
-    R: { w:"U", s:"D", a:"F", d:"B" }
-  };
+// WASD controls
+document.addEventListener("keydown",e=>{
+  if(!hovered) return;
 
-  let m = map[face][dir];
-  applyMove(m);
-}
+  const normal = hovered.face.normal;
 
-function applyMove(m) {
-  rotateFace(m);
-  let t;
+  if(e.key==="w") rotateLayer("y",1,1);
+  if(e.key==="s") rotateLayer("y",-1,1);
+  if(e.key==="a") rotateLayer("x",-1,1);
+  if(e.key==="d") rotateLayer("x",1,1);
+});
 
-  if (m==="U"){
-    t=cubeState.F.slice(0,3);
-    cubeState.F.splice(0,3,...cubeState.R.slice(0,3));
-    cubeState.R.splice(0,3,...cubeState.B.slice(0,3));
-    cubeState.B.splice(0,3,...cubeState.L.slice(0,3));
-    cubeState.L.splice(0,3,...t);
-  }
+// drag-to-turn (basic direction detection)
+let dragStart=null;
 
-  if (m==="D"){
-    t=cubeState.F.slice(6,9);
-    cubeState.F.splice(6,3,...cubeState.L.slice(6,9));
-    cubeState.L.splice(6,3,...cubeState.B.slice(6,9));
-    cubeState.B.splice(6,3,...cubeState.R.slice(6,9));
-    cubeState.R.splice(6,3,...t);
-  }
-
-  if (m==="F"){
-    t=[cubeState.U[6],cubeState.U[7],cubeState.U[8]];
-    [cubeState.U[6],cubeState.U[7],cubeState.U[8]]=[cubeState.L[8],cubeState.L[5],cubeState.L[2]];
-    [cubeState.L[2],cubeState.L[5],cubeState.L[8]]=[cubeState.D[2],cubeState.D[1],cubeState.D[0]];
-    [cubeState.D[0],cubeState.D[1],cubeState.D[2]]=[cubeState.R[6],cubeState.R[3],cubeState.R[0]];
-    [cubeState.R[0],cubeState.R[3],cubeState.R[6]]=t;
-  }
-
-  if (m==="B"){
-    t=[cubeState.U[0],cubeState.U[1],cubeState.U[2]];
-    [cubeState.U[0],cubeState.U[1],cubeState.U[2]]=[cubeState.R[2],cubeState.R[5],cubeState.R[8]];
-    [cubeState.R[2],cubeState.R[5],cubeState.R[8]]=[cubeState.D[8],cubeState.D[7],cubeState.D[6]];
-    [cubeState.D[6],cubeState.D[7],cubeState.D[8]]=[cubeState.L[0],cubeState.L[3],cubeState.L[6]];
-    [cubeState.L[0],cubeState.L[3],cubeState.L[6]]=t;
-  }
-
-  if (m==="L"){
-    t=[cubeState.U[0],cubeState.U[3],cubeState.U[6]];
-    [cubeState.U[0],cubeState.U[3],cubeState.U[6]]=[cubeState.B[8],cubeState.B[5],cubeState.B[2]];
-    [cubeState.B[2],cubeState.B[5],cubeState.B[8]]=[cubeState.D[0],cubeState.D[3],cubeState.D[6]];
-    [cubeState.D[0],cubeState.D[3],cubeState.D[6]]=[cubeState.F[0],cubeState.F[3],cubeState.F[6]];
-    [cubeState.F[0],cubeState.F[3],cubeState.F[6]]=t;
-  }
-
-  if (m==="R"){
-    t=[cubeState.U[2],cubeState.U[5],cubeState.U[8]];
-    [cubeState.U[2],cubeState.U[5],cubeState.U[8]]=[cubeState.F[2],cubeState.F[5],cubeState.F[8]];
-    [cubeState.F[2],cubeState.F[5],cubeState.F[8]]=[cubeState.D[2],cubeState.D[5],cubeState.D[8]];
-    [cubeState.D[2],cubeState.D[5],cubeState.D[8]]=[cubeState.B[6],cubeState.B[3],cubeState.B[0]];
-    [cubeState.B[0],cubeState.B[3],cubeState.B[6]]=t;
-  }
-
-  render();
-}
-
-// keyboard input
-document.addEventListener("keydown",(e)=>{
-  if (!hoveredFace) return;
-
-  const key = e.key.toLowerCase();
-  if (["w","a","s","d"].includes(key)) {
-    move(hoveredFace, key);
+document.addEventListener("mousedown",e=>{
+  if(hovered){
+    dragStart = {x:e.clientX, y:e.clientY};
   }
 });
 
-function render(){
-  const cube=document.getElementById("cube");
-  cube.innerHTML="";
+document.addEventListener("mouseup",e=>{
+  if(!dragStart || !hovered) return;
 
-  for (let face in cubeState){
-    const faceDiv=document.createElement("div");
-    faceDiv.className="face "+face;
+  let dx = e.clientX - dragStart.x;
+  let dy = e.clientY - dragStart.y;
 
-    faceDiv.addEventListener("mouseenter",()=>{
-      hoveredFace = face;
-      faceDiv.style.outline = "3px solid white";
-    });
-
-    faceDiv.addEventListener("mouseleave",()=>{
-      hoveredFace = null;
-      faceDiv.style.outline = "none";
-    });
-
-    cubeState[face].forEach(color=>{
-      const s=document.createElement("div");
-      s.className="sticker";
-      s.style.background=color;
-      faceDiv.appendChild(s);
-    });
-
-    cube.appendChild(faceDiv);
+  if(Math.abs(dx)>Math.abs(dy)){
+    rotateLayer("y", Math.sign(dx), 1);
+  } else {
+    rotateLayer("x", Math.sign(dy), 1);
   }
+
+  dragStart=null;
+});
+
+// render loop
+function animate(){
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
 }
+animate();
 
-render();
 </script>
-
-
 </body>
 </html>
