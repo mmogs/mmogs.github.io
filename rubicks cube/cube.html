@@ -4,18 +4,31 @@
 <meta charset="UTF-8">
 <title>Rubik's Cube Improved</title>
 <style>
-  body { margin:0; overflow:hidden; background:#111; }
-  canvas { display:block; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #111;
+  }
+
+  canvas {
+    display: block;
+  }
+
   #info {
-    position:absolute; top:10px; left:10px;
-    color:white; font-family:Arial;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-family: Arial;
+    z-index: 10;
   }
 </style>
 </head>
 <body>
+
 <div id="info">
-Right-click drag = rotate view<br>
-Left-click drag = turn layer
+  Right-click drag = rotate camera<br>
+  Left-click drag = turn layer
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
@@ -23,29 +36,32 @@ Left-click drag = turn layer
 <script>
 const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
-camera.position.set(6,6,6);
-camera.lookAt(0,0,0);
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(6, 6, 6);
+camera.lookAt(0, 0, 0);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(devicePixelRatio);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
 window.addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// disable right-click menu
 window.addEventListener("contextmenu", e => e.preventDefault());
 
-const light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(5,5,5);
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 5, 5);
 scene.add(light);
 
-// COLORS (no more black face issue)
 const colors = {
   U: 0xffffff,
   D: 0xffff00,
@@ -53,7 +69,7 @@ const colors = {
   B: 0x0000ff,
   L: 0xff8800,
   R: 0xff0000,
-  EMPTY: 0x222222 // instead of black
+  EMPTY: 0x222222
 };
 
 const cubies = [];
@@ -61,68 +77,75 @@ const size = 1;
 let isTurning = false;
 
 // build cube
-for (let x=-1;x<=1;x++){
-for (let y=-1;y<=1;y++){
-for (let z=-1;z<=1;z++){
+for (let x = -1; x <= 1; x++) {
+  for (let y = -1; y <= 1; y++) {
+    for (let z = -1; z <= 1; z++) {
 
-  const geo = new THREE.BoxGeometry(size,size,size);
+      const geo = new THREE.BoxGeometry(size, size, size);
 
-  const mats = [
-    new THREE.MeshBasicMaterial({color: x===1?colors.R:colors.EMPTY}),
-    new THREE.MeshBasicMaterial({color: x===-1?colors.L:colors.EMPTY}),
-    new THREE.MeshBasicMaterial({color: y===1?colors.U:colors.EMPTY}),
-    new THREE.MeshBasicMaterial({color: y===-1?colors.D:colors.EMPTY}),
-    new THREE.MeshBasicMaterial({color: z===1?colors.F:colors.EMPTY}),
-    new THREE.MeshBasicMaterial({color: z===-1?colors.B:colors.EMPTY}),
-  ];
+      const mats = [
+        new THREE.MeshBasicMaterial({ color: x === 1 ? colors.R : colors.EMPTY }),
+        new THREE.MeshBasicMaterial({ color: x === -1 ? colors.L : colors.EMPTY }),
+        new THREE.MeshBasicMaterial({ color: y === 1 ? colors.U : colors.EMPTY }),
+        new THREE.MeshBasicMaterial({ color: y === -1 ? colors.D : colors.EMPTY }),
+        new THREE.MeshBasicMaterial({ color: z === 1 ? colors.F : colors.EMPTY }),
+        new THREE.MeshBasicMaterial({ color: z === -1 ? colors.B : colors.EMPTY }),
+      ];
 
-  const cube = new THREE.Mesh(geo, mats);
+      const cube = new THREE.Mesh(geo, mats);
 
-  // outlines
-  const edges = new THREE.EdgesGeometry(geo);
-  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color:0x000000}));
-  cube.add(line);
+      // outlines
+      const edges = new THREE.EdgesGeometry(geo);
+      const lines = new THREE.LineSegments(
+        edges,
+        new THREE.LineBasicMaterial({ color: 0x000000 })
+      );
+      cube.add(lines);
 
-  cube.position.set(x,y,z);
-  scene.add(cube);
-  cubies.push(cube);
+      cube.position.set(x, y, z);
+      scene.add(cube);
+      cubies.push(cube);
+    }
+  }
+}
 
-}}}
+// ===== RIGHT CLICK CAMERA ROTATION =====
+let rightDragging = false;
+let prevMouse = { x: 0, y: 0 };
 
-// ===== CAMERA ROTATION (RIGHT CLICK ONLY) =====
-let rightDragging=false, prev={x:0,y:0};
-
-document.addEventListener("mousedown",e=>{
-  if(e.button===2){
-    rightDragging=true;
-    prev.x=e.clientX;
-    prev.y=e.clientY;
+document.addEventListener("mousedown", e => {
+  if (e.button === 2) {
+    rightDragging = true;
+    prevMouse.x = e.clientX;
+    prevMouse.y = e.clientY;
   }
 });
 
-document.addEventListener("mouseup",()=>rightDragging=false);
-
-document.addEventListener("mousemove",e=>{
-  if(!rightDragging) return;
-
-  let dx=e.clientX-prev.x;
-  let dy=e.clientY-prev.y;
-
-  scene.rotation.y += dx*0.005;
-  scene.rotation.x += dy*0.005;
-
-  prev.x=e.clientX;
-  prev.y=e.clientY;
+document.addEventListener("mouseup", () => {
+  rightDragging = false;
 });
 
-// ===== RAYCAST =====
+document.addEventListener("mousemove", e => {
+  if (!rightDragging) return;
+
+  const dx = e.clientX - prevMouse.x;
+  const dy = e.clientY - prevMouse.y;
+
+  scene.rotation.y += dx * 0.005;
+  scene.rotation.x += dy * 0.005;
+
+  prevMouse.x = e.clientX;
+  prevMouse.y = e.clientY;
+});
+
+// ===== RAYCASTING =====
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let hovered = null;
 
-document.addEventListener("mousemove",e=>{
-  mouse.x = (e.clientX / innerWidth)*2-1;
-  mouse.y = -(e.clientY / innerHeight)*2+1;
+document.addEventListener("mousemove", e => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObjects(cubies);
@@ -130,38 +153,38 @@ document.addEventListener("mousemove",e=>{
   hovered = hits.length ? hits[0] : null;
 });
 
-// ===== ROTATION =====
-function rotateLayer(axis, index, dir){
-  if(isTurning) return;
+// ===== ROTATE LAYER =====
+function rotateLayer(axis, index, dir) {
+  if (isTurning) return;
   isTurning = true;
 
   const group = new THREE.Group();
   scene.add(group);
 
-  cubies.forEach(c=>{
-    if(Math.round(c.position[axis])===index){
-      group.attach(c);
+  cubies.forEach(cubie => {
+    if (Math.round(cubie.position[axis]) === index) {
+      group.attach(cubie);
     }
   });
 
-  let angle = (Math.PI/2)*dir;
+  const angle = (Math.PI / 2) * dir;
   const start = performance.now();
 
-  function anim(t){
-    let p = Math.min((t-start)/150,1);
-    group.rotation[axis] = angle*p;
+  function animateRotation(time) {
+    const progress = Math.min((time - start) / 150, 1);
+    group.rotation[axis] = angle * progress;
 
-    if(p<1){
-      requestAnimationFrame(anim);
+    if (progress < 1) {
+      requestAnimationFrame(animateRotation);
     } else {
-      group.children.slice().forEach(c=>{
-        scene.attach(c);
+      group.children.slice().forEach(cubie => {
+        scene.attach(cubie);
 
-        c.position.x = Math.round(c.position.x);
-        c.position.y = Math.round(c.position.y);
-        c.position.z = Math.round(c.position.z);
+        cubie.position.x = Math.round(cubie.position.x);
+        cubie.position.y = Math.round(cubie.position.y);
+        cubie.position.z = Math.round(cubie.position.z);
 
-        c.rotation.set(0,0,0);
+        cubie.rotation.set(0, 0, 0);
       });
 
       scene.remove(group);
@@ -169,58 +192,64 @@ function rotateLayer(axis, index, dir){
     }
   }
 
-  requestAnimationFrame(anim);
+  requestAnimationFrame(animateRotation);
 }
 
-// ===== LEFT CLICK DRAG = TURN =====
-let dragStart=null;
+// ===== LEFT CLICK DRAG TURN =====
+let dragStart = null;
 
-document.addEventListener("mousedown",e=>{
-  if(e.button===0 && hovered){
+document.addEventListener("mousedown", e => {
+  if (e.button === 0 && hovered) {
     dragStart = {
-      x:e.clientX,
-      y:e.clientY,
-      face: hovered.face.normal.clone()
+      x: e.clientX,
+      y: e.clientY,
+      cubie: hovered.object,
+      normal: hovered.face.normal.clone()
     };
   }
 });
 
-document.addEventListener("mouseup",e=>{
-  if(e.button!==0 || !dragStart || !hovered || isTurning) return;
+document.addEventListener("mouseup", e => {
+  if (e.button !== 0 || !dragStart || isTurning) return;
 
-  let dx = e.clientX - dragStart.x;
-  let dy = e.clientY - dragStart.y;
+  const dx = e.clientX - dragStart.x;
+  const dy = e.clientY - dragStart.y;
 
-  let absX = Math.abs(dx);
-  let absY = Math.abs(dy);
+  if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
+    dragStart = null;
+    return;
+  }
 
-  // determine axis based on face normal
-  const n = dragStart.face;
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
 
-  if(absX > absY){
-    if(Math.abs(n.y)===1){
-      rotateLayer("x", Math.round(hovered.object.position.x), Math.sign(dx));
+  const pos = dragStart.cubie.position;
+  const n = dragStart.normal;
+
+  if (absX > absY) {
+    if (Math.abs(n.y) === 1) {
+      rotateLayer("x", Math.round(pos.x), Math.sign(dx));
     } else {
-      rotateLayer("y", Math.round(hovered.object.position.y), Math.sign(dx));
+      rotateLayer("y", Math.round(pos.y), Math.sign(dx));
     }
   } else {
-    if(Math.abs(n.x)===1){
-      rotateLayer("y", Math.round(hovered.object.position.y), Math.sign(dy));
+    if (Math.abs(n.x) === 1) {
+      rotateLayer("y", Math.round(pos.y), Math.sign(dy));
     } else {
-      rotateLayer("x", Math.round(hovered.object.position.x), Math.sign(dy));
+      rotateLayer("x", Math.round(pos.x), Math.sign(dy));
     }
   }
 
-  dragStart=null;
+  dragStart = null;
 });
 
-// render
-function animate(){
+// render loop
+function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
 }
 animate();
-
 </script>
+
 </body>
 </html>
