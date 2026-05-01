@@ -2,10 +2,11 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Rubik Cube Fixed Controls</title>
+<title>Rubik Layer Control</title>
 <style>
   body { margin:0; overflow:hidden; background:#111; }
   canvas { display:block; }
+
   #info {
     position:absolute;
     top:10px;
@@ -19,8 +20,9 @@
 <body>
 
 <div id="info">
-Right-click drag = camera<br>
-Left-click drag = turn layer
+Right-click = select layer<br>
+A / D = rotate layer<br>
+Left-click drag = camera
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
@@ -61,7 +63,25 @@ const colors = {
 const cubies = [];
 let isTurning = false;
 
-// ===== BUILD CUBE =====
+// ===== SELECTED LAYER =====
+let selectedAxis = null; // "x","y","z"
+let selectedIndex = null;
+
+// highlight material cache
+function updateHighlight(){
+  cubies.forEach(c=>{
+    const match =
+      selectedAxis &&
+      Math.round(c.position[selectedAxis]) === selectedIndex;
+
+    c.material.forEach(m=>{
+      m.opacity = match ? 0.6 : 1;
+      m.transparent = true;
+    });
+  });
+}
+
+// build cube
 for (let x=-1;x<=1;x++){
 for (let y=-1;y<=1;y++){
 for (let z=-1;z<=1;z++){
@@ -89,132 +109,125 @@ for (let z=-1;z<=1;z++){
 
 }}}
 
-// ===== CAMERA CONTROL (RIGHT CLICK) =====
-let draggingCamera = false;
-let prev = {x:0,y:0};
+// ===== CAMERA (LEFT CLICK DRAG) =====
+let dragging=false, prev={x:0,y:0};
 
-document.addEventListener("mousedown", e=>{
-  if(e.button===2){
-    draggingCamera = true;
-    prev.x = e.clientX;
-    prev.y = e.clientY;
+document.addEventListener("mousedown",e=>{
+  if(e.button===0){
+    dragging=true;
+    prev.x=e.clientX;
+    prev.y=e.clientY;
   }
 });
 
-document.addEventListener("mouseup", ()=> draggingCamera=false);
+document.addEventListener("mouseup",()=>dragging=false);
 
-document.addEventListener("mousemove", e=>{
-  if(!draggingCamera) return;
+document.addEventListener("mousemove",e=>{
+  if(!dragging) return;
 
-  let dx = e.clientX - prev.x;
-  let dy = e.clientY - prev.y;
+  let dx=e.clientX-prev.x;
+  let dy=e.clientY-prev.y;
 
   scene.rotation.y += dx*0.005;
   scene.rotation.x += dy*0.005;
 
-  prev.x = e.clientX;
-  prev.y = e.clientY;
+  prev.x=e.clientX;
+  prev.y=e.clientY;
 });
 
 // ===== RAYCAST =====
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let hit = null;
+let hit=null;
 
-document.addEventListener("mousemove", e=>{
-  mouse.x = (e.clientX/window.innerWidth)*2-1;
-  mouse.y = -(e.clientY/window.innerHeight)*2+1;
+document.addEventListener("mousemove",e=>{
+  mouse.x=(e.clientX/window.innerWidth)*2-1;
+  mouse.y=-(e.clientY/window.innerHeight)*2+1;
 
-  raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(cubies);
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(cubies);
 
   hit = hits.length ? hits[0] : null;
 });
 
-// ===== CORE FIX: PROPER LOCAL LAYER PICKING =====
-function getLayer(cubie, axis){
-  return Math.round(cubie.position[axis]);
-}
+// ===== SELECT LAYER (RIGHT CLICK) =====
+document.addEventListener("mousedown",e=>{
+  if(e.button===2 && hit){
+    const p = hit.object.position;
 
-// ===== ROTATION =====
-function rotateLayer(axis, index, dir){
+    // choose strongest axis of clicked face
+    const abs = {
+      x: Math.abs(hit.face.normal.x),
+      y: Math.abs(hit.face.normal.y),
+      z: Math.abs(hit.face.normal.z)
+    };
+
+    if(abs.x > abs.y && abs.x > abs.z){
+      selectedAxis="x";
+      selectedIndex=Math.round(p.x);
+    } else if(abs.y > abs.x && abs.y > abs.z){
+      selectedAxis="y";
+      selectedIndex=Math.round(p.y);
+    } else {
+      selectedAxis="z";
+      selectedIndex=Math.round(p.z);
+    }
+
+    updateHighlight();
+  }
+});
+
+// ===== ROTATE LAYER =====
+function rotateLayer(axis,index,dir){
   if(isTurning) return;
-  isTurning = true;
+  isTurning=true;
 
-  const group = new THREE.Group();
+  const group=new THREE.Group();
   scene.add(group);
 
   cubies.forEach(c=>{
-    if(Math.round(c.position[axis]) === index){
+    if(Math.round(c.position[axis])===index){
       group.attach(c);
     }
   });
 
-  const angle = (Math.PI/2)*dir;
-  const start = performance.now();
+  const angle=(Math.PI/2)*dir;
+  const start=performance.now();
 
   function anim(t){
-    const p = Math.min((t-start)/150,1);
-    group.rotation[axis] = angle*p;
+    const p=Math.min((t-start)/150,1);
+    group.rotation[axis]=angle*p;
 
     if(p<1){
       requestAnimationFrame(anim);
     } else {
       group.children.slice().forEach(c=>{
         scene.attach(c);
-
-        c.position.x = Math.round(c.position.x);
-        c.position.y = Math.round(c.position.y);
-        c.position.z = Math.round(c.position.z);
-
+        c.position.x=Math.round(c.position.x);
+        c.position.y=Math.round(c.position.y);
+        c.position.z=Math.round(c.position.z);
         c.rotation.set(0,0,0);
       });
 
       scene.remove(group);
-      isTurning = false;
+      isTurning=false;
     }
   }
 
   requestAnimationFrame(anim);
 }
 
-// ===== LEFT CLICK DRAG (FIXED + RELIABLE) =====
-let dragStart = null;
+// ===== KEY CONTROLS =====
+document.addEventListener("keydown",e=>{
+  if(!selectedAxis || selectedIndex===null) return;
 
-document.addEventListener("mousedown", e=>{
-  if(e.button===0 && hit){
-    dragStart = {
-      x:e.clientX,
-      y:e.clientY,
-      cubie:hit.object
-    };
-  }
-});
-
-document.addEventListener("mouseup", e=>{
-  if(e.button!==0 || !dragStart || isTurning) return;
-
-  let dx = e.clientX - dragStart.x;
-  let dy = e.clientY - dragStart.y;
-
-  if(Math.abs(dx)<5 && Math.abs(dy)<5){
-    dragStart=null;
-    return;
+  if(e.key==="a"){
+    rotateLayer(selectedAxis,selectedIndex,-1);
   }
 
-  const absX = Math.abs(dx);
-  const absY = Math.abs(dy);
-
-  const pos = dragStart.cubie.position;
-
-  // KEY FIX: ALWAYS USE LOCAL GRID POSITION
-  if(absX > absY){
-    rotateLayer("y", Math.round(pos.y), Math.sign(dx));
-  } else {
-    rotateLayer("x", Math.round(pos.x), Math.sign(dy));
+  if(e.key==="d"){
+    rotateLayer(selectedAxis,selectedIndex,1);
   }
-
-  dragStart = null;
 });
 
 // render loop
