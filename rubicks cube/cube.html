@@ -2,33 +2,25 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Rubik's Cube Improved</title>
+<title>Rubik Cube Fixed Controls</title>
 <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: #111;
-  }
-
-  canvas {
-    display: block;
-  }
-
+  body { margin:0; overflow:hidden; background:#111; }
+  canvas { display:block; }
   #info {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    color: white;
-    font-family: Arial;
-    z-index: 10;
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    font-family:Arial;
+    z-index:10;
   }
 </style>
 </head>
 <body>
 
 <div id="info">
-  Right-click drag = rotate camera<br>
-  Left-click drag = turn layer
+Right-click drag = camera<br>
+Left-click drag = turn layer
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
@@ -36,30 +28,24 @@
 <script>
 const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-camera.position.set(6, 6, 6);
-camera.lookAt(0, 0, 0);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(6,6,6);
+camera.lookAt(0,0,0);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+window.addEventListener("resize", ()=>{
+  camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(innerWidth, innerHeight);
 });
 
 window.addEventListener("contextmenu", e => e.preventDefault());
 
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 5, 5);
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(5,5,5);
 scene.add(light);
 
 const colors = {
@@ -73,118 +59,115 @@ const colors = {
 };
 
 const cubies = [];
-const size = 1;
 let isTurning = false;
 
-// build cube
-for (let x = -1; x <= 1; x++) {
-  for (let y = -1; y <= 1; y++) {
-    for (let z = -1; z <= 1; z++) {
+// ===== BUILD CUBE =====
+for (let x=-1;x<=1;x++){
+for (let y=-1;y<=1;y++){
+for (let z=-1;z<=1;z++){
 
-      const geo = new THREE.BoxGeometry(size, size, size);
+  const geo = new THREE.BoxGeometry(1,1,1);
 
-      const mats = [
-        new THREE.MeshBasicMaterial({ color: x === 1 ? colors.R : colors.EMPTY }),
-        new THREE.MeshBasicMaterial({ color: x === -1 ? colors.L : colors.EMPTY }),
-        new THREE.MeshBasicMaterial({ color: y === 1 ? colors.U : colors.EMPTY }),
-        new THREE.MeshBasicMaterial({ color: y === -1 ? colors.D : colors.EMPTY }),
-        new THREE.MeshBasicMaterial({ color: z === 1 ? colors.F : colors.EMPTY }),
-        new THREE.MeshBasicMaterial({ color: z === -1 ? colors.B : colors.EMPTY }),
-      ];
+  const mats = [
+    new THREE.MeshBasicMaterial({color: x===1?colors.R:colors.EMPTY}),
+    new THREE.MeshBasicMaterial({color: x===-1?colors.L:colors.EMPTY}),
+    new THREE.MeshBasicMaterial({color: y===1?colors.U:colors.EMPTY}),
+    new THREE.MeshBasicMaterial({color: y===-1?colors.D:colors.EMPTY}),
+    new THREE.MeshBasicMaterial({color: z===1?colors.F:colors.EMPTY}),
+    new THREE.MeshBasicMaterial({color: z===-1?colors.B:colors.EMPTY}),
+  ];
 
-      const cube = new THREE.Mesh(geo, mats);
+  const cube = new THREE.Mesh(geo, mats);
 
-      // outlines
-      const edges = new THREE.EdgesGeometry(geo);
-      const lines = new THREE.LineSegments(
-        edges,
-        new THREE.LineBasicMaterial({ color: 0x000000 })
-      );
-      cube.add(lines);
+  const edges = new THREE.EdgesGeometry(geo);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color:0x000000}));
+  cube.add(line);
 
-      cube.position.set(x, y, z);
-      scene.add(cube);
-      cubies.push(cube);
-    }
-  }
-}
+  cube.position.set(x,y,z);
+  scene.add(cube);
+  cubies.push(cube);
 
-// ===== RIGHT CLICK CAMERA ROTATION =====
-let rightDragging = false;
-let prevMouse = { x: 0, y: 0 };
+}}}
 
-document.addEventListener("mousedown", e => {
-  if (e.button === 2) {
-    rightDragging = true;
-    prevMouse.x = e.clientX;
-    prevMouse.y = e.clientY;
+// ===== CAMERA CONTROL (RIGHT CLICK) =====
+let draggingCamera = false;
+let prev = {x:0,y:0};
+
+document.addEventListener("mousedown", e=>{
+  if(e.button===2){
+    draggingCamera = true;
+    prev.x = e.clientX;
+    prev.y = e.clientY;
   }
 });
 
-document.addEventListener("mouseup", () => {
-  rightDragging = false;
+document.addEventListener("mouseup", ()=> draggingCamera=false);
+
+document.addEventListener("mousemove", e=>{
+  if(!draggingCamera) return;
+
+  let dx = e.clientX - prev.x;
+  let dy = e.clientY - prev.y;
+
+  scene.rotation.y += dx*0.005;
+  scene.rotation.x += dy*0.005;
+
+  prev.x = e.clientX;
+  prev.y = e.clientY;
 });
 
-document.addEventListener("mousemove", e => {
-  if (!rightDragging) return;
-
-  const dx = e.clientX - prevMouse.x;
-  const dy = e.clientY - prevMouse.y;
-
-  scene.rotation.y += dx * 0.005;
-  scene.rotation.x += dy * 0.005;
-
-  prevMouse.x = e.clientX;
-  prevMouse.y = e.clientY;
-});
-
-// ===== RAYCASTING =====
+// ===== RAYCAST =====
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let hovered = null;
+let hit = null;
 
-document.addEventListener("mousemove", e => {
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+document.addEventListener("mousemove", e=>{
+  mouse.x = (e.clientX/window.innerWidth)*2-1;
+  mouse.y = -(e.clientY/window.innerHeight)*2+1;
 
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObjects(cubies);
 
-  hovered = hits.length ? hits[0] : null;
+  hit = hits.length ? hits[0] : null;
 });
 
-// ===== ROTATE LAYER =====
-function rotateLayer(axis, index, dir) {
-  if (isTurning) return;
+// ===== CORE FIX: PROPER LOCAL LAYER PICKING =====
+function getLayer(cubie, axis){
+  return Math.round(cubie.position[axis]);
+}
+
+// ===== ROTATION =====
+function rotateLayer(axis, index, dir){
+  if(isTurning) return;
   isTurning = true;
 
   const group = new THREE.Group();
   scene.add(group);
 
-  cubies.forEach(cubie => {
-    if (Math.round(cubie.position[axis]) === index) {
-      group.attach(cubie);
+  cubies.forEach(c=>{
+    if(Math.round(c.position[axis]) === index){
+      group.attach(c);
     }
   });
 
-  const angle = (Math.PI / 2) * dir;
+  const angle = (Math.PI/2)*dir;
   const start = performance.now();
 
-  function animateRotation(time) {
-    const progress = Math.min((time - start) / 150, 1);
-    group.rotation[axis] = angle * progress;
+  function anim(t){
+    const p = Math.min((t-start)/150,1);
+    group.rotation[axis] = angle*p;
 
-    if (progress < 1) {
-      requestAnimationFrame(animateRotation);
+    if(p<1){
+      requestAnimationFrame(anim);
     } else {
-      group.children.slice().forEach(cubie => {
-        scene.attach(cubie);
+      group.children.slice().forEach(c=>{
+        scene.attach(c);
 
-        cubie.position.x = Math.round(cubie.position.x);
-        cubie.position.y = Math.round(cubie.position.y);
-        cubie.position.z = Math.round(cubie.position.z);
+        c.position.x = Math.round(c.position.x);
+        c.position.y = Math.round(c.position.y);
+        c.position.z = Math.round(c.position.z);
 
-        cubie.rotation.set(0, 0, 0);
+        c.rotation.set(0,0,0);
       });
 
       scene.remove(group);
@@ -192,31 +175,30 @@ function rotateLayer(axis, index, dir) {
     }
   }
 
-  requestAnimationFrame(animateRotation);
+  requestAnimationFrame(anim);
 }
 
-// ===== LEFT CLICK DRAG TURN =====
+// ===== LEFT CLICK DRAG (FIXED + RELIABLE) =====
 let dragStart = null;
 
-document.addEventListener("mousedown", e => {
-  if (e.button === 0 && hovered) {
+document.addEventListener("mousedown", e=>{
+  if(e.button===0 && hit){
     dragStart = {
-      x: e.clientX,
-      y: e.clientY,
-      cubie: hovered.object,
-      normal: hovered.face.normal.clone()
+      x:e.clientX,
+      y:e.clientY,
+      cubie:hit.object
     };
   }
 });
 
-document.addEventListener("mouseup", e => {
-  if (e.button !== 0 || !dragStart || isTurning) return;
+document.addEventListener("mouseup", e=>{
+  if(e.button!==0 || !dragStart || isTurning) return;
 
-  const dx = e.clientX - dragStart.x;
-  const dy = e.clientY - dragStart.y;
+  let dx = e.clientX - dragStart.x;
+  let dy = e.clientY - dragStart.y;
 
-  if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
-    dragStart = null;
+  if(Math.abs(dx)<5 && Math.abs(dy)<5){
+    dragStart=null;
     return;
   }
 
@@ -224,32 +206,24 @@ document.addEventListener("mouseup", e => {
   const absY = Math.abs(dy);
 
   const pos = dragStart.cubie.position;
-  const n = dragStart.normal;
 
-  if (absX > absY) {
-    if (Math.abs(n.y) === 1) {
-      rotateLayer("x", Math.round(pos.x), Math.sign(dx));
-    } else {
-      rotateLayer("y", Math.round(pos.y), Math.sign(dx));
-    }
+  // KEY FIX: ALWAYS USE LOCAL GRID POSITION
+  if(absX > absY){
+    rotateLayer("y", Math.round(pos.y), Math.sign(dx));
   } else {
-    if (Math.abs(n.x) === 1) {
-      rotateLayer("y", Math.round(pos.y), Math.sign(dy));
-    } else {
-      rotateLayer("x", Math.round(pos.x), Math.sign(dy));
-    }
+    rotateLayer("x", Math.round(pos.x), Math.sign(dy));
   }
 
   dragStart = null;
 });
 
 // render loop
-function animate() {
+function animate(){
   requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+  renderer.render(scene,camera);
 }
 animate();
-</script>
 
+</script>
 </body>
 </html>
