@@ -92,13 +92,30 @@ let cubeState = {
   R: Array(9).fill(colors.R),
 };
 
+let hoveredFace = null;
+
 function rotateFace(face) {
   const c = cubeState[face];
   cubeState[face] = [c[6],c[3],c[0],c[7],c[4],c[1],c[8],c[5],c[2]];
 }
 
-// same move logic as before
-function move(m) {
+// simplified directional mapping
+function move(face, dir) {
+  // map WASD into actual cube moves depending on face
+  const map = {
+    F: { w:"U", s:"D", a:"L", d:"R" },
+    B: { w:"U", s:"D", a:"R", d:"L" },
+    U: { w:"B", s:"F", a:"L", d:"R" },
+    D: { w:"F", s:"B", a:"L", d:"R" },
+    L: { w:"U", s:"D", a:"B", d:"F" },
+    R: { w:"U", s:"D", a:"F", d:"B" }
+  };
+
+  let m = map[face][dir];
+  applyMove(m);
+}
+
+function applyMove(m) {
   rotateFace(m);
   let t;
 
@@ -153,10 +170,15 @@ function move(m) {
   render();
 }
 
-function scramble(){
-  const m=["U","D","L","R","F","B"];
-  for(let i=0;i<20;i++) move(m[Math.floor(Math.random()*6)]);
-}
+// keyboard input
+document.addEventListener("keydown",(e)=>{
+  if (!hoveredFace) return;
+
+  const key = e.key.toLowerCase();
+  if (["w","a","s","d"].includes(key)) {
+    move(hoveredFace, key);
+  }
+});
 
 function render(){
   const cube=document.getElementById("cube");
@@ -165,6 +187,16 @@ function render(){
   for (let face in cubeState){
     const faceDiv=document.createElement("div");
     faceDiv.className="face "+face;
+
+    faceDiv.addEventListener("mouseenter",()=>{
+      hoveredFace = face;
+      faceDiv.style.outline = "3px solid white";
+    });
+
+    faceDiv.addEventListener("mouseleave",()=>{
+      hoveredFace = null;
+      faceDiv.style.outline = "none";
+    });
 
     cubeState[face].forEach(color=>{
       const s=document.createElement("div");
@@ -177,37 +209,9 @@ function render(){
   }
 }
 
-// drag rotation
-let isDragging=false, lastX=0, lastY=0;
-let rotX=-30, rotY=30;
-
-const cubeEl=document.getElementById("cube");
-
-document.addEventListener("mousedown",(e)=>{
-  isDragging=true;
-  lastX=e.clientX;
-  lastY=e.clientY;
-});
-
-document.addEventListener("mouseup",()=>isDragging=false);
-
-document.addEventListener("mousemove",(e)=>{
-  if(!isDragging) return;
-
-  let dx=e.clientX-lastX;
-  let dy=e.clientY-lastY;
-
-  rotY+=dx*0.5;
-  rotX-=dy*0.5;
-
-  cubeEl.style.transform=`rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-
-  lastX=e.clientX;
-  lastY=e.clientY;
-});
-
 render();
 </script>
+
 
 </body>
 </html>
