@@ -13,7 +13,7 @@
     const sound = document.getElementById("sound");
 
     let lastFrame = null;
-    const threshold = 50; // sensitivity (lower = more sensitive)
+    const threshold = 30; // sensitivity (lower = more sensitive)
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
