@@ -1,57 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Motion Sound Detector</title>
+  <title>Motion Detector (Boxes + Sound)</title>
+  <style>
+    body { text-align: center; background: #111; color: white; font-family: Arial; }
+    canvas { position: absolute; left: 0; top: 0; }
+    video { display: none; }
+  </style>
 </head>
 <body>
-  <h2>Motion Detector</h2>
-  <video id="video" autoplay></video>
-  <audio id="sound" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
-  <script>
-    const video = document.getElementById("video");
-    const sound = document.getElementById("sound");
+<h2>Motion Detector</h2>
 
-    let lastFrame = null;
-    const threshold = 30; // sensitivity (lower = more sensitive)
+<video id="video" autoplay></video>
+<canvas id="canvas"></canvas>
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        video.srcObject = stream;
-        startDetection();
-      });
+<audio id="boom" src="https://www.myinstants.com/media/sounds/vine-boom.mp3"></audio>
 
-    function startDetection() {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const boom = document.getElementById("boom");
 
-      setInterval(() => {
-        if (video.readyState !== 4) return;
+let lastFrame = null;
+const threshold = 30; // sensitivity
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => {
+    video.srcObject = stream;
+    video.onloadedmetadata = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      detectMotion();
+    };
+  });
 
-        ctx.drawImage(video, 0, 0);
-        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+function detectMotion() {
+  const tempCanvas = document.createElement("canvas");
+  const tempCtx = tempCanvas.getContext("2d");
 
-        if (lastFrame) {
-          let diff = 0;
+  setInterval(() => {
+    if (video.readyState !== 4) return;
 
-          for (let i = 0; i < frame.data.length; i += 4) {
-            diff += Math.abs(frame.data[i] - lastFrame.data[i]);
-          }
+    tempCanvas.width = video.videoWidth;
+    tempCanvas.height = video.videoHeight;
 
-          const avgDiff = diff / (frame.data.length / 4);
+    tempCtx.drawImage(video, 0, 0);
 
-          if (avgDiff > threshold) {
-            sound.currentTime = 0;
-            sound.play();
-          }
-        }
+    const frame = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
 
-        lastFrame = frame;
-      }, 200);
+    if (!lastFrame) {
+      lastFrame = frame;
+      return;
     }
-  </script>
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let motionDetected = false;
+
+    const step = 20; // box size grid
+
+    for (let y = 0; y < canvas.height; y += step) {
+      for (let x = 0; x < canvas.width; x += step) {
+
+        let i = (y * canvas.width + x) * 4;
+
+        let diff =
+          Math.abs(frame.data[i] - lastFrame.data[i]) +
+          Math.abs(frame.data[i+1] - lastFrame.data[i+1]) +
+          Math.abs(frame.data[i+2] - lastFrame.data[i+2]);
+
+        if (diff > threshold * 3) {
+          ctx.strokeStyle = "red";
+          ctx.strokeRect(x, y, step, step);
+          motionDetected = true;
+        }
+      }
+    }
+
+    if (motionDetected) {
+      boom.currentTime = 0;
+      boom.play();
+    }
+
+    lastFrame = frame;
+
+  }, 100);
+}
+</script>
+
 </body>
 </html>
