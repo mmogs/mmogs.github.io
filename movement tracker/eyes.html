@@ -29,7 +29,7 @@
 
 <body>
 
-<h2>Motion Detector</h2>
+<h2>Motion Detector (Fast Movement Only)</h2>
 
 <video id="video" autoplay></video>
 <canvas id="canvas"></canvas>
@@ -43,14 +43,11 @@ const ctx = canvas.getContext("2d");
 const boom = document.getElementById("boom");
 
 let lastFrame = null;
+let lastMotionValue = 0;
 
-// MUCH LOWER sensitivity (higher threshold = less sensitive)
-const threshold = 80;
-
-// prevents spam triggering until sound fully finishes
 let audioReady = true;
 
-// unlock audio on first interaction
+// require click to unlock audio
 document.body.addEventListener("click", () => {
   boom.play().then(() => {
     boom.pause();
@@ -58,7 +55,6 @@ document.body.addEventListener("click", () => {
   }).catch(() => {});
 });
 
-// reset flag when sound finishes
 boom.onended = () => {
   audioReady = true;
 };
@@ -86,11 +82,7 @@ function startDetection() {
 
     tempCtx.drawImage(video, 0, 0);
 
-    const frame = tempCtx.getImageData(
-      0, 0,
-      tempCanvas.width,
-      tempCanvas.height
-    );
+    const frame = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
 
     if (!lastFrame) {
       lastFrame = frame;
@@ -99,9 +91,9 @@ function startDetection() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    let motionDetected = false;
+    let motionValue = 0;
 
-    const step = 120; // larger step = less sensitive (more skipping)
+    const step = 30;
 
     for (let y = 0; y < canvas.height; y += step) {
       for (let x = 0; x < canvas.width; x += step) {
@@ -113,25 +105,32 @@ function startDetection() {
           Math.abs(frame.data[i+1] - lastFrame.data[i+1]) +
           Math.abs(frame.data[i+2] - lastFrame.data[i+2]);
 
-        if (diff > threshold * 3) {
+        if (diff > 200) {
           ctx.strokeStyle = "red";
           ctx.strokeRect(x, y, step, step);
-          motionDetected = true;
+          motionValue += diff;
         }
       }
     }
 
-    if (motionDetected && audioReady) {
-      audioReady = false; // lock until sound finishes
+    // normalize motion
+    motionValue = motionValue / 1000;
 
-      boom.pause();
+    // detect FAST movement spike only
+    const motionSpike = motionValue - lastMotionValue;
+
+    const fastMovementThreshold = 8; // higher = only very fast motion
+
+    if (motionSpike > fastMovementThreshold && audioReady) {
+      audioReady = false;
       boom.currentTime = 0;
       boom.play().catch(err => console.log("Audio blocked:", err));
     }
 
+    lastMotionValue = motionValue;
     lastFrame = frame;
 
-  }, 120); // slightly slower loop = less sensitivity
+  }, 100);
 }
 </script>
 
