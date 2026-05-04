@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -36,7 +36,7 @@
 <body>
   <canvas id="canvas"></canvas>
   <div class="controls">
-    <p>Drag to rotate | Arrow keys to scramble | SPACE to solve</p>
+    <p>Drag to rotate | U D L R F B to turn faces | Arrow keys scramble | SPACE resets</p>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -44,46 +44,48 @@
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
-    
+
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x0a0e27);
     camera.position.z = 5;
 
-    const neonColors = [
-      0xff006e, // Hot pink
-      0x00f5ff, // Cyan
-      0xffbe0b, // Yellow
-      0xfb5607, // Orange
-      0x8338ec, // Purple
-      0xffffff  // White
-    ];
+    const faceColors = {
+      R: 0x0000ff,
+      L: 0x00ff00,
+      U: 0xffffff,
+      D: 0xffff00,
+      F: 0xff0000,
+      B: 0xffa500,
+      blank: 0x111111
+    };
 
     const cubelets = [];
-    const groupRotations = {};
+    let rotating = false;
+
+    const axisVectors = {
+      x: new THREE.Vector3(1, 0, 0),
+      y: new THREE.Vector3(0, 1, 0),
+      z: new THREE.Vector3(0, 0, 1)
+    };
 
     function createCubelet(x, y, z) {
       const geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95);
-      const materials = [];
-      
-      for (let i = 0; i < 6; i++) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#' + neonColors[i].toString(16).padStart(6, '0');
-        ctx.fillRect(0, 0, 64, 64);
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(2, 2, 60, 60);
-        
-        const texture = new THREE.CanvasTexture(canvas);
-        materials.push(new THREE.MeshPhongMaterial({ map: texture }));
-      }
-      
+      const colors = [
+        x === 1 ? faceColors.R : faceColors.blank,
+        x === -1 ? faceColors.L : faceColors.blank,
+        y === 1 ? faceColors.U : faceColors.blank,
+        y === -1 ? faceColors.D : faceColors.blank,
+        z === 1 ? faceColors.F : faceColors.blank,
+        z === -1 ? faceColors.B : faceColors.blank
+      ];
+      const materials = colors.map(color => new THREE.MeshPhongMaterial({ color, shininess: 50 }));
+
       const cubelet = new THREE.Mesh(geometry, materials);
       cubelet.position.set(x, y, z);
-      cubelet.originalPosition = new THREE.Vector3(x, y, z);
-      cubelet.originalRotation = new THREE.Euler(0, 0, 0);
+      cubelet.userData = {
+        originalPosition: new THREE.Vector3(x, y, z),
+        originalRotation: new THREE.Euler(0, 0, 0)
+      };
       return cubelet;
     }
 
@@ -102,8 +104,11 @@
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x404040));
 
-    let mouseDown = false, mouseX = 0, mouseY = 0;
-    let rotationX = 0, rotationY = 0;
+    let mouseDown = false;
+    let mouseX = 0;
+    let mouseY = 0;
+    let rotationX = 0;
+    let rotationY = 0;
 
     document.addEventListener('mousedown', (e) => {
       mouseDown = true;
@@ -124,39 +129,95 @@
       mouseDown = false;
     });
 
+    const moveMap = {
+      U: () => rotateSlice('y', 1, -1),
+      D: () => rotateSlice('y', -1, 1),
+      L: () => rotateSlice('x', -1, -1),
+      R: () => rotateSlice('x', 1, 1),
+      F: () => rotateSlice('z', 1, -1),
+      B: () => rotateSlice('z', -1, 1)
+    };
+
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+      const key = e.key.toUpperCase();
+      if (moveMap[key]) {
+        moveMap[key]();
+      } else if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
         scramble();
-      }
-      if (e.code === 'Space') {
-        solveCube();
+      } else if (e.code === 'Space') {
+        resetCube();
       }
     });
 
-    function scramble() {
-      cubelets.forEach(cubelet => {
-        cubelet.position.copy(cubelet.originalPosition).multiplyScalar(1 + (Math.random() - 0.5) * 0.1);
-        cubelet.rotation.x += Math.random() * 0.5;
-        cubelet.rotation.y += Math.random() * 0.5;
-        cubelet.rotation.z += Math.random() * 0.5;
-      });
+    function normalizeAngle(angle) {
+      return Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
     }
 
-    function solveCube() {
+    function finalizeCubelet(cubelet, worldMatrix) {
+      cubelet.position.setFromMatrixPosition(worldMatrix);
+      cubelet.rotation.setFromRotationMatrix(new THREE.Matrix4().extractRotation(worldMatrix));
+      cubelet.position.x = Math.round(cubelet.position.x);
+      cubelet.position.y = Math.round(cubelet.position.y);
+      cubelet.position.z = Math.round(cubelet.position.z);
+      cubelet.rotation.x = normalizeAngle(cubelet.rotation.x);
+      cubelet.rotation.y = normalizeAngle(cubelet.rotation.y);
+      cubelet.rotation.z = normalizeAngle(cubelet.rotation.z);
+    }
+
+    function rotateSlice(axis, layer, direction) {
+      if (rotating) return;
+      rotating = true;
+
+      const slice = cubelets.filter(cubelet => Math.abs(cubelet.position[axis] - layer) < 0.1);
+      if (!slice.length) {
+        rotating = false;
+        return;
+      }
+
+      const group = new THREE.Group();
+      scene.add(group);
+      slice.forEach(cubelet => group.add(cubelet));
+
+      group.rotateOnAxis(axisVectors[axis], direction * Math.PI / 2);
+      group.updateMatrixWorld(true);
+
+      slice.forEach(cubelet => {
+        const worldMatrix = cubelet.matrixWorld.clone();
+        scene.attach(cubelet);
+        finalizeCubelet(cubelet, worldMatrix);
+      });
+
+      scene.remove(group);
+      rotating = false;
+    }
+
+    function scramble() {
+      const moves = [
+        ['y', 1, -1],
+        ['y', -1, 1],
+        ['x', -1, -1],
+        ['x', 1, 1],
+        ['z', 1, -1],
+        ['z', -1, 1]
+      ];
+
+      for (let i = 0; i < 20; i++) {
+        const [axis, layer, direction] = moves[Math.floor(Math.random() * moves.length)];
+        rotateSlice(axis, layer, direction);
+      }
+    }
+
+    function resetCube() {
       cubelets.forEach(cubelet => {
-        cubelet.position.lerp(cubelet.originalPosition, 0.1);
-        cubelet.rotation.x += (cubelet.originalRotation.x - cubelet.rotation.x) * 0.1;
-        cubelet.rotation.y += (cubelet.originalRotation.y - cubelet.rotation.y) * 0.1;
-        cubelet.rotation.z += (cubelet.originalRotation.z - cubelet.rotation.z) * 0.1;
+        cubelet.position.copy(cubelet.userData.originalPosition);
+        cubelet.rotation.copy(cubelet.userData.originalRotation);
       });
     }
 
     function animate() {
       requestAnimationFrame(animate);
-      
       scene.rotation.x = rotationX;
       scene.rotation.y = rotationY;
-      
       renderer.render(scene, camera);
     }
 
