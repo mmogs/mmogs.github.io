@@ -1,13 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Motion Detector (Boxes + Sound)</title>
+  <title>Motion Detector (Fixed + Sound + Boxes)</title>
   <style>
-    body { text-align: center; background: #111; color: white; font-family: Arial; }
-    canvas { position: absolute; left: 0; top: 0; }
-    video { display: none; }
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: Arial;
+      text-align: center;
+    }
+
+    h2 {
+      margin: 10px;
+    }
+
+    video {
+      display: none;
+    }
+
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
   </style>
 </head>
+
 <body>
 
 <h2>Motion Detector</h2>
@@ -15,7 +34,10 @@
 <video id="video" autoplay></video>
 <canvas id="canvas"></canvas>
 
-<audio id="boom" src="https://www.myinstants.com/media/sounds/vine-boom.mp3"></audio>
+<!-- Reliable audio source -->
+<audio id="boom"
+  src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_8b3c7c2b3c.mp3?filename=boom-2-6771.mp3">
+</audio>
 
 <script>
 const video = document.getElementById("video");
@@ -24,19 +46,30 @@ const ctx = canvas.getContext("2d");
 const boom = document.getElementById("boom");
 
 let lastFrame = null;
-const threshold = 30; // sensitivity
+
+// sensitivity (lower = more sensitive)
+const threshold = 25;
+
+// allow audio
+document.body.addEventListener("click", () => {
+  boom.play().then(() => {
+    boom.pause();
+    boom.currentTime = 0;
+  }).catch(() => {});
+});
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
     video.srcObject = stream;
+
     video.onloadedmetadata = () => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      detectMotion();
+      startDetection();
     };
   });
 
-function detectMotion() {
+function startDetection() {
   const tempCanvas = document.createElement("canvas");
   const tempCtx = tempCanvas.getContext("2d");
 
@@ -48,7 +81,11 @@ function detectMotion() {
 
     tempCtx.drawImage(video, 0, 0);
 
-    const frame = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    const frame = tempCtx.getImageData(
+      0, 0,
+      tempCanvas.width,
+      tempCanvas.height
+    );
 
     if (!lastFrame) {
       lastFrame = frame;
@@ -59,14 +96,14 @@ function detectMotion() {
 
     let motionDetected = false;
 
-    const step = 20; // box size grid
+    const step = 25;
 
     for (let y = 0; y < canvas.height; y += step) {
       for (let x = 0; x < canvas.width; x += step) {
 
-        let i = (y * canvas.width + x) * 4;
+        const i = (y * canvas.width + x) * 4;
 
-        let diff =
+        const diff =
           Math.abs(frame.data[i] - lastFrame.data[i]) +
           Math.abs(frame.data[i+1] - lastFrame.data[i+1]) +
           Math.abs(frame.data[i+2] - lastFrame.data[i+2]);
@@ -80,8 +117,9 @@ function detectMotion() {
     }
 
     if (motionDetected) {
+      boom.pause();
       boom.currentTime = 0;
-      boom.play();
+      boom.play().catch(err => console.log("Audio blocked:", err));
     }
 
     lastFrame = frame;
