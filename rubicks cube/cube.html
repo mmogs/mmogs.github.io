@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Rubik Cube Controls Fixed</title>
+<title>Rubik Cube FINAL FIX</title>
 <style>
   body { margin:0; overflow:hidden; background:#111; }
   canvas { display:block; }
@@ -20,8 +20,8 @@
 
 <div id="info">
 Right-click drag = camera<br>
-Left-click = select layer<br>
-A / D = rotate selected layer
+Left-click = select layer (turns yellow)<br>
+A / D = rotate layer
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
@@ -63,11 +63,11 @@ const colors = {
 const cubies = [];
 let isTurning = false;
 
-// ===== selected layer =====
-let selectedAxis = null;
-let selectedIndex = null;
+// selection
+let selectedAxis=null;
+let selectedIndex=null;
 
-// ===== build cube =====
+// ===== BUILD =====
 for (let x=-1;x<=1;x++){
 for (let y=-1;y<=1;y++){
 for (let z=-1;z<=1;z++){
@@ -86,8 +86,7 @@ for (let z=-1;z<=1;z++){
   const cube = new THREE.Mesh(geo, mats);
 
   const edges = new THREE.EdgesGeometry(geo);
-  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color:0x000000}));
-  cube.add(line);
+  cube.add(new THREE.LineSegments(edges,new THREE.LineBasicMaterial({color:0x000000})));
 
   cube.position.set(x,y,z);
   scene.add(cube);
@@ -95,19 +94,18 @@ for (let z=-1;z<=1;z++){
 
 }}}
 
-// ===== highlight =====
+// ===== HIGHLIGHT =====
 function updateHighlight(){
   cubies.forEach(c=>{
-    const match = selectedAxis && Math.round(c.position[selectedAxis]) === selectedIndex;
+    const match = selectedAxis && Math.round(c.position[selectedAxis])===selectedIndex;
 
     c.material.forEach(m=>{
-      m.opacity = match ? 0.6 : 1;
-      m.transparent = true;
+      m.emissive = new THREE.Color(match ? 0x444400 : 0x000000);
     });
   });
 }
 
-// ===== camera control (RIGHT CLICK DRAG) =====
+// ===== CAMERA (RIGHT CLICK) =====
 let dragging=false, prev={x:0,y:0};
 
 document.addEventListener("mousedown",e=>{
@@ -123,24 +121,21 @@ document.addEventListener("mouseup",()=>dragging=false);
 document.addEventListener("mousemove",e=>{
   if(!dragging) return;
 
-  let dx=e.clientX-prev.x;
-  let dy=e.clientY-prev.y;
-
-  scene.rotation.y += dx*0.005;
-  scene.rotation.x += dy*0.005;
+  scene.rotation.y += (e.clientX-prev.x)*0.005;
+  scene.rotation.x += (e.clientY-prev.y)*0.005;
 
   prev.x=e.clientX;
   prev.y=e.clientY;
 });
 
-// ===== raycast =====
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+// ===== RAYCAST =====
+const raycaster=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
 let hit=null;
 
 document.addEventListener("mousemove",e=>{
-  mouse.x=(e.clientX/window.innerWidth)*2-1;
-  mouse.y=-(e.clientY/window.innerHeight)*2+1;
+  mouse.x=(e.clientX/innerWidth)*2-1;
+  mouse.y=-(e.clientY/innerHeight)*2+1;
 
   raycaster.setFromCamera(mouse,camera);
   const hits=raycaster.intersectObjects(cubies);
@@ -148,17 +143,22 @@ document.addEventListener("mousemove",e=>{
   hit = hits.length ? hits[0] : null;
 });
 
-// ===== select layer (LEFT CLICK) =====
+// ===== SELECT (FIXED) =====
 document.addEventListener("mousedown",e=>{
   if(e.button===0 && hit){
+
     const p = hit.object.position;
     const n = hit.face.normal;
 
-    // choose axis based on face clicked
-    if(Math.abs(n.x) > 0){
+    // FIX: determine axis using largest normal component
+    const ax = Math.abs(n.x);
+    const ay = Math.abs(n.y);
+    const az = Math.abs(n.z);
+
+    if(ax > ay && ax > az){
       selectedAxis="x";
       selectedIndex=Math.round(p.x);
-    } else if(Math.abs(n.y) > 0){
+    } else if(ay > ax && ay > az){
       selectedAxis="y";
       selectedIndex=Math.round(p.y);
     } else {
@@ -170,7 +170,7 @@ document.addEventListener("mousedown",e=>{
   }
 });
 
-// ===== rotate layer =====
+// ===== ROTATE =====
 function rotateLayer(axis,index,dir){
   if(isTurning) return;
   isTurning=true;
@@ -212,20 +212,20 @@ function rotateLayer(axis,index,dir){
   requestAnimationFrame(anim);
 }
 
-// ===== keyboard controls =====
+// ===== KEYS =====
 document.addEventListener("keydown",e=>{
   if(!selectedAxis) return;
 
   if(e.key.toLowerCase()==="a"){
-    rotateLayer(selectedAxis, selectedIndex, -1);
+    rotateLayer(selectedAxis,selectedIndex,-1);
   }
 
   if(e.key.toLowerCase()==="d"){
-    rotateLayer(selectedAxis, selectedIndex, 1);
+    rotateLayer(selectedAxis,selectedIndex,1);
   }
 });
 
-// ===== render =====
+// ===== RENDER =====
 function animate(){
   requestAnimationFrame(animate);
   renderer.render(scene,camera);
