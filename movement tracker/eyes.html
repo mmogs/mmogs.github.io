@@ -35,8 +35,9 @@
 <canvas id="canvas"></canvas>
 
 <!-- Reliable audio source -->
-<audio id="boom"
-  src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_8b3c7c2b3c.mp3?filename=boom-2-6771.mp3">
+<audio id="boom" preload="auto">
+  <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_8b3c7c2b3c.mp3" type="audio/mpeg">
+  <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
 </audio>
 
 <script>
