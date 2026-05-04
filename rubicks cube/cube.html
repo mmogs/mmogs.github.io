@@ -19,7 +19,7 @@
 
 <div id="info">
 Right-click drag = camera<br>
-Left-click = select layer (turns transparent)<br>
+Left-click = select layer<br>
 A / D = rotate
 </div>
 
@@ -28,44 +28,69 @@ A / D = rotate
 <script>
 const scene = new THREE.Scene();
 
+// ✅ CAMERA FIX
 const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
-camera.position.set(6,6,6);
+camera.position.set(5,5,5);
+camera.lookAt(0,0,0);
 
+// ✅ RENDERER
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
+// resize
 window.addEventListener("resize", ()=>{
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
 
+// disable right click menu
 window.addEventListener("contextmenu", e=>e.preventDefault());
+
+// ✅ LIGHTING (IMPORTANT)
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5,5,5);
+scene.add(light);
+
+const ambient = new THREE.AmbientLight(0x404040);
+scene.add(ambient);
+
+// colors
+const colors = {
+  x1: 0xff0000,
+  x_1: 0xff8800,
+  y1: 0xffffff,
+  y_1: 0xffff00,
+  z1: 0x00ff00,
+  z_1: 0x0000ff,
+  empty: 0x222222
+};
 
 const cubies = [];
 let isTurning = false;
-
 let selectedAxis = null;
 let selectedIndex = null;
 
-// build cube
+// ✅ BUILD CUBE
 for(let x=-1;x<=1;x++){
 for(let y=-1;y<=1;y++){
 for(let z=-1;z<=1;z++){
 
   const geo = new THREE.BoxGeometry(1,1,1);
 
-  const mat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent:true,
-    opacity:1
-  });
+  const mats = [
+    new THREE.MeshStandardMaterial({color: x===1?colors.x1:colors.empty}),
+    new THREE.MeshStandardMaterial({color: x===-1?colors.x_1:colors.empty}),
+    new THREE.MeshStandardMaterial({color: y===1?colors.y1:colors.empty}),
+    new THREE.MeshStandardMaterial({color: y===-1?colors.y_1:colors.empty}),
+    new THREE.MeshStandardMaterial({color: z===1?colors.z1:colors.empty}),
+    new THREE.MeshStandardMaterial({color: z===-1?colors.z_1:colors.empty}),
+  ];
 
-  const cube = new THREE.Mesh(geo, mat);
+  const cube = new THREE.Mesh(geo, mats);
   cube.position.set(x,y,z);
-
-  cube.userData = {x,y,z};
 
   scene.add(cube);
   cubies.push(cube);
@@ -95,7 +120,7 @@ document.addEventListener("mousemove",e=>{
   prev.y=e.clientY;
 });
 
-// ===== SIMPLE CLICK SELECT (NO NORMALS) =====
+// ===== PICK =====
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -109,23 +134,21 @@ function pick(e){
   return hits.length ? hits[0].object : null;
 }
 
+// ===== SELECT =====
 document.addEventListener("click", e=>{
   if(e.button!==0) return;
 
   const obj = pick(e);
   if(!obj) return;
 
-  // SIMPLE: always pick Y layer (reliable baseline)
   selectedAxis = "y";
   selectedIndex = Math.round(obj.position.y);
 
-  // highlight
   cubies.forEach(c=>{
-    if(Math.round(c.position.y)===selectedIndex){
-      c.material.opacity = 0.4;
-    } else {
-      c.material.opacity = 1;
-    }
+    c.material.forEach(m=>{
+      m.opacity = Math.round(c.position.y)===selectedIndex ? 0.4 : 1;
+      m.transparent = true;
+    });
   });
 });
 
@@ -134,7 +157,7 @@ function rotateLayer(axis,index,dir){
   if(isTurning) return;
   isTurning=true;
 
-  const group = new THREE.Group();
+  const group=new THREE.Group();
   scene.add(group);
 
   cubies.forEach(c=>{
@@ -143,22 +166,21 @@ function rotateLayer(axis,index,dir){
     }
   });
 
-  const start = performance.now();
+  const start=performance.now();
 
   function anim(t){
-    const p = Math.min((t-start)/150,1);
-    group.rotation[axis] = p * Math.PI/2 * dir;
+    const p=Math.min((t-start)/150,1);
+    group.rotation[axis]=p*Math.PI/2*dir;
 
     if(p<1){
       requestAnimationFrame(anim);
     } else {
-
       group.children.slice().forEach(c=>{
         scene.attach(c);
 
-        c.position.x = Math.round(c.position.x);
-        c.position.y = Math.round(c.position.y);
-        c.position.z = Math.round(c.position.z);
+        c.position.x=Math.round(c.position.x);
+        c.position.y=Math.round(c.position.y);
+        c.position.z=Math.round(c.position.z);
       });
 
       scene.remove(group);
