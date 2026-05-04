@@ -101,7 +101,7 @@ function startDetection() {
 
     let motionDetected = false;
 
-    const step = 60; // larger step = less sensitive (more skipping)
+    const step = 120; // larger step = less sensitive (more skipping)
 
     for (let y = 0; y < canvas.height; y += step) {
       for (let x = 0; x < canvas.width; x += step) {
