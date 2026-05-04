@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Motion Sound Detector</title>
+</head>
+<body>
+  <h2>Motion Detector</h2>
+  <video id="video" autoplay></video>
+  <audio id="sound" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
+
+  <script>
+    const video = document.getElementById("video");
+    const sound = document.getElementById("sound");
+
+    let lastFrame = null;
+    const threshold = 50; // sensitivity (lower = more sensitive)
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+        startDetection();
+      });
+
+    function startDetection() {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      setInterval(() => {
+        if (video.readyState !== 4) return;
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        ctx.drawImage(video, 0, 0);
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        if (lastFrame) {
+          let diff = 0;
+
+          for (let i = 0; i < frame.data.length; i += 4) {
+            diff += Math.abs(frame.data[i] - lastFrame.data[i]);
+          }
+
+          const avgDiff = diff / (frame.data.length / 4);
+
+          if (avgDiff > threshold) {
+            sound.currentTime = 0;
+            sound.play();
+          }
+        }
+
+        lastFrame = frame;
+      }, 200);
+    }
+  </script>
+</body>
+</html>
