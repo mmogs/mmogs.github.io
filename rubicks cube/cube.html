@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Rubik Cube Final</title>
+<title>Rubik Cube Stable</title>
 <style>
   body { margin:0; overflow:hidden; background:#111; }
   canvas { display:block; }
@@ -20,7 +20,7 @@
 <div id="info">
 Right-click drag = camera<br>
 Left-click = select layer<br>
-A / D = rotate
+A / D = rotate layer
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
@@ -28,49 +28,40 @@ A / D = rotate
 <script>
 const scene = new THREE.Scene();
 
-// CAMERA
 const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
 camera.position.set(5,5,5);
 camera.lookAt(0,0,0);
 
-// RENDERER
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-// resize
 window.addEventListener("resize", ()=>{
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
 
-// disable right-click menu
 window.addEventListener("contextmenu", e=>e.preventDefault());
 
-// LIGHTING (bright + clear)
-scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-const light = new THREE.DirectionalLight(0xffffff, 1.2);
+// LIGHT
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
+const light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(5,5,5);
 scene.add(light);
 
 // COLORS
 const colors = {
-  x1: 0xff0000,
-  x_1: 0xff8000,
-  y1: 0xffffff,
-  y_1: 0xffff00,
-  z1: 0x00ff00,
-  z_1: 0x0000ff,
-  empty: 0x111111
+  r:0xff0000, o:0xff8800, w:0xffffff,
+  y:0xffff00, g:0x00ff00, b:0x0000ff,
+  empty:0x111111
 };
 
 const cubies = [];
-let isTurning = false;
+let isTurning=false;
 
-let selectedAxis = null;
-let selectedIndex = null;
+let selectedAxis=null;
+let selectedIndex=null;
 
 // BUILD CUBE
 for(let x=-1;x<=1;x++){
@@ -80,42 +71,41 @@ for(let z=-1;z<=1;z++){
   const geo = new THREE.BoxGeometry(1,1,1);
 
   const mats = [
-    new THREE.MeshStandardMaterial({color: x===1?colors.x1:colors.empty}),
-    new THREE.MeshStandardMaterial({color: x===-1?colors.x_1:colors.empty}),
-    new THREE.MeshStandardMaterial({color: y===1?colors.y1:colors.empty}),
-    new THREE.MeshStandardMaterial({color: y===-1?colors.y_1:colors.empty}),
-    new THREE.MeshStandardMaterial({color: z===1?colors.z1:colors.empty}),
-    new THREE.MeshStandardMaterial({color: z===-1?colors.z_1:colors.empty}),
+    new THREE.MeshStandardMaterial({color: x===1?colors.r:colors.empty}),
+    new THREE.MeshStandardMaterial({color: x===-1?colors.o:colors.empty}),
+    new THREE.MeshStandardMaterial({color: y===1?colors.w:colors.empty}),
+    new THREE.MeshStandardMaterial({color: y===-1?colors.y:colors.empty}),
+    new THREE.MeshStandardMaterial({color: z===1?colors.g:colors.empty}),
+    new THREE.MeshStandardMaterial({color: z===-1?colors.b:colors.empty}),
   ];
 
   const cube = new THREE.Mesh(geo, mats);
-
-  // OUTLINES
-  const edges = new THREE.EdgesGeometry(geo);
-  const lines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color:0x000000}));
-  cube.add(lines);
-
   cube.position.set(x,y,z);
+
+  // edges (real cube look)
+  const edges = new THREE.EdgesGeometry(geo);
+  cube.add(new THREE.LineSegments(edges,new THREE.LineBasicMaterial({color:0x000000})));
+
   scene.add(cube);
   cubies.push(cube);
 
 }}}
 
-// ===== CAMERA (RIGHT CLICK DRAG) =====
-let rotating=false, prev={x:0,y:0};
+// CAMERA (RIGHT CLICK DRAG)
+let dragging=false, prev={x:0,y:0};
 
 document.addEventListener("mousedown",e=>{
   if(e.button===2){
-    rotating=true;
+    dragging=true;
     prev.x=e.clientX;
     prev.y=e.clientY;
   }
 });
 
-document.addEventListener("mouseup",()=>rotating=false);
+document.addEventListener("mouseup",()=>dragging=false);
 
 document.addEventListener("mousemove",e=>{
-  if(!rotating) return;
+  if(!dragging) return;
 
   scene.rotation.y += (e.clientX-prev.x)*0.005;
   scene.rotation.x += (e.clientY-prev.y)*0.005;
@@ -124,66 +114,60 @@ document.addEventListener("mousemove",e=>{
   prev.y=e.clientY;
 });
 
-// ===== RAYCAST =====
+// RAYCAST
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-function getIntersection(e){
+function getHit(e){
   mouse.x = (e.clientX/innerWidth)*2-1;
   mouse.y = -(e.clientY/innerHeight)*2+1;
 
-  raycaster.setFromCamera(mouse, camera);
+  raycaster.setFromCamera(mouse,camera);
   const hits = raycaster.intersectObjects(cubies);
 
-  return hits.length ? hits[0] : null;
+  return hits.length ? hits[0].object : null;
 }
 
-// ===== HIGHLIGHT =====
-function updateHighlight(){
+// SELECT LAYER (FIXED)
+document.addEventListener("click", e=>{
+  if(e.button!==0) return;
+
+  const obj = getHit(e);
+  if(!obj) return;
+
+  const p = obj.position;
+
+  // ALWAYS pick strongest axis by position (NOT face normal)
+  const ax = Math.abs(p.x);
+  const ay = Math.abs(p.y);
+  const az = Math.abs(p.z);
+
+  if(ax > ay && ax > az){
+    selectedAxis="x";
+    selectedIndex=Math.round(p.x);
+  } else if(ay > ax && ay > az){
+    selectedAxis="y";
+    selectedIndex=Math.round(p.y);
+  } else {
+    selectedAxis="z";
+    selectedIndex=Math.round(p.z);
+  }
+
+  // highlight
   cubies.forEach(c=>{
     const match = selectedAxis && Math.round(c.position[selectedAxis])===selectedIndex;
 
     c.material.forEach(m=>{
       m.emissive = new THREE.Color(match ? 0x444400 : 0x000000);
-      m.opacity = match ? 0.75 : 1;
       m.transparent = true;
+      m.opacity = match ? 0.7 : 1;
     });
   });
-}
-
-// ===== SELECT (LEFT CLICK, ANY FACE) =====
-document.addEventListener("click", e=>{
-  if(e.button!==0) return;
-
-  const hit = getIntersection(e);
-  if(!hit) return;
-
-  const n = hit.face.normal;
-  const p = hit.object.position;
-
-  const ax = Math.abs(n.x);
-  const ay = Math.abs(n.y);
-  const az = Math.abs(n.z);
-
-  if(ax > ay && ax > az){
-    selectedAxis = "x";
-    selectedIndex = Math.round(p.x);
-  }
-  else if(ay > ax && ay > az){
-    selectedAxis = "y";
-    selectedIndex = Math.round(p.y);
-  }
-  else {
-    selectedAxis = "z";
-    selectedIndex = Math.round(p.z);
-  }
-
-  updateHighlight();
 });
 
-// ===== ROTATE =====
+// ROTATE
 function rotateLayer(axis,index,dir){
-  if(isTurning) return;
+  if(isTurning || !axis) return;
   isTurning=true;
 
   const group=new THREE.Group();
@@ -206,7 +190,6 @@ function rotateLayer(axis,index,dir){
     } else {
       group.children.slice().forEach(c=>{
         scene.attach(c);
-
         c.position.x=Math.round(c.position.x);
         c.position.y=Math.round(c.position.y);
         c.position.z=Math.round(c.position.z);
@@ -220,20 +203,15 @@ function rotateLayer(axis,index,dir){
   requestAnimationFrame(anim);
 }
 
-// ===== KEY CONTROLS =====
-document.addEventListener("keydown", e=>{
+// KEYS
+document.addEventListener("keydown",e=>{
   if(!selectedAxis) return;
 
-  if(e.key.toLowerCase()==="a"){
-    rotateLayer(selectedAxis, selectedIndex, -1);
-  }
-
-  if(e.key.toLowerCase()==="d"){
-    rotateLayer(selectedAxis, selectedIndex, 1);
-  }
+  if(e.key==="a") rotateLayer(selectedAxis,selectedIndex,-1);
+  if(e.key==="d") rotateLayer(selectedAxis,selectedIndex,1);
 });
 
-// ===== RENDER =====
+// LOOP
 function animate(){
   requestAnimationFrame(animate);
   renderer.render(scene,camera);
@@ -241,6 +219,5 @@ function animate(){
 animate();
 
 </script>
-
 </body>
 </html>
