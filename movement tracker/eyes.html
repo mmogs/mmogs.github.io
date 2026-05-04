@@ -35,10 +35,7 @@
 <canvas id="canvas"></canvas>
 
 <!-- Reliable audio source -->
-<audio id="boom" preload="auto">
-  <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_8b3c7c2b3c.mp3" type="audio/mpeg">
-  <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
-</audio>
+<audio id="boom" src="movement tracker\bithuh-vine-boom-392646.mp3"></audio>
 
 <script>
 const video = document.getElementById("video");
@@ -49,7 +46,7 @@ const boom = document.getElementById("boom");
 let lastFrame = null;
 
 // sensitivity (lower = more sensitive)
-const threshold = 25;
+const threshold = 100;
 
 // allow audio
 document.body.addEventListener("click", () => {
