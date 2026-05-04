@@ -34,7 +34,6 @@
 <video id="video" autoplay></video>
 <canvas id="canvas"></canvas>
 
-<!-- LOCAL SOUND FILE -->
 <audio id="boom" src="bithuh-vine-boom-392646.mp3"></audio>
 
 <script>
@@ -45,16 +44,24 @@ const boom = document.getElementById("boom");
 
 let lastFrame = null;
 
-// sensitivity (lower = more sensitive)
-const threshold = 25;
+// MUCH LOWER sensitivity (higher threshold = less sensitive)
+const threshold = 80;
 
-// unlock audio on first interaction (required by Chrome)
+// prevents spam triggering until sound fully finishes
+let audioReady = true;
+
+// unlock audio on first interaction
 document.body.addEventListener("click", () => {
   boom.play().then(() => {
     boom.pause();
     boom.currentTime = 0;
   }).catch(() => {});
 });
+
+// reset flag when sound finishes
+boom.onended = () => {
+  audioReady = true;
+};
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
@@ -94,7 +101,7 @@ function startDetection() {
 
     let motionDetected = false;
 
-    const step = 25;
+    const step = 30; // larger step = less sensitive (more skipping)
 
     for (let y = 0; y < canvas.height; y += step) {
       for (let x = 0; x < canvas.width; x += step) {
@@ -114,7 +121,9 @@ function startDetection() {
       }
     }
 
-    if (motionDetected) {
+    if (motionDetected && audioReady) {
+      audioReady = false; // lock until sound finishes
+
       boom.pause();
       boom.currentTime = 0;
       boom.play().catch(err => console.log("Audio blocked:", err));
@@ -122,7 +131,7 @@ function startDetection() {
 
     lastFrame = frame;
 
-  }, 100);
+  }, 120); // slightly slower loop = less sensitivity
 }
 </script>
 
