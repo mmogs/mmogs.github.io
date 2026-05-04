@@ -2,11 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Rubik Layer Control</title>
+<title>Rubik Cube Controls Fixed</title>
 <style>
   body { margin:0; overflow:hidden; background:#111; }
   canvas { display:block; }
-
   #info {
     position:absolute;
     top:10px;
@@ -20,9 +19,9 @@
 <body>
 
 <div id="info">
-Right-click = select layer<br>
-A / D = rotate layer<br>
-Left-click drag = camera
+Right-click drag = camera<br>
+Left-click = select layer<br>
+A / D = rotate selected layer
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
@@ -36,6 +35,7 @@ camera.lookAt(0,0,0);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
 window.addEventListener("resize", ()=>{
@@ -63,25 +63,11 @@ const colors = {
 const cubies = [];
 let isTurning = false;
 
-// ===== SELECTED LAYER =====
-let selectedAxis = null; // "x","y","z"
+// ===== selected layer =====
+let selectedAxis = null;
 let selectedIndex = null;
 
-// highlight material cache
-function updateHighlight(){
-  cubies.forEach(c=>{
-    const match =
-      selectedAxis &&
-      Math.round(c.position[selectedAxis]) === selectedIndex;
-
-    c.material.forEach(m=>{
-      m.opacity = match ? 0.6 : 1;
-      m.transparent = true;
-    });
-  });
-}
-
-// build cube
+// ===== build cube =====
 for (let x=-1;x<=1;x++){
 for (let y=-1;y<=1;y++){
 for (let z=-1;z<=1;z++){
@@ -109,11 +95,23 @@ for (let z=-1;z<=1;z++){
 
 }}}
 
-// ===== CAMERA (LEFT CLICK DRAG) =====
+// ===== highlight =====
+function updateHighlight(){
+  cubies.forEach(c=>{
+    const match = selectedAxis && Math.round(c.position[selectedAxis]) === selectedIndex;
+
+    c.material.forEach(m=>{
+      m.opacity = match ? 0.6 : 1;
+      m.transparent = true;
+    });
+  });
+}
+
+// ===== camera control (RIGHT CLICK DRAG) =====
 let dragging=false, prev={x:0,y:0};
 
 document.addEventListener("mousedown",e=>{
-  if(e.button===0){
+  if(e.button===2){
     dragging=true;
     prev.x=e.clientX;
     prev.y=e.clientY;
@@ -135,7 +133,7 @@ document.addEventListener("mousemove",e=>{
   prev.y=e.clientY;
 });
 
-// ===== RAYCAST =====
+// ===== raycast =====
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let hit=null;
@@ -150,22 +148,17 @@ document.addEventListener("mousemove",e=>{
   hit = hits.length ? hits[0] : null;
 });
 
-// ===== SELECT LAYER (RIGHT CLICK) =====
+// ===== select layer (LEFT CLICK) =====
 document.addEventListener("mousedown",e=>{
-  if(e.button===2 && hit){
+  if(e.button===0 && hit){
     const p = hit.object.position;
+    const n = hit.face.normal;
 
-    // choose strongest axis of clicked face
-    const abs = {
-      x: Math.abs(hit.face.normal.x),
-      y: Math.abs(hit.face.normal.y),
-      z: Math.abs(hit.face.normal.z)
-    };
-
-    if(abs.x > abs.y && abs.x > abs.z){
+    // choose axis based on face clicked
+    if(Math.abs(n.x) > 0){
       selectedAxis="x";
       selectedIndex=Math.round(p.x);
-    } else if(abs.y > abs.x && abs.y > abs.z){
+    } else if(Math.abs(n.y) > 0){
       selectedAxis="y";
       selectedIndex=Math.round(p.y);
     } else {
@@ -177,7 +170,7 @@ document.addEventListener("mousedown",e=>{
   }
 });
 
-// ===== ROTATE LAYER =====
+// ===== rotate layer =====
 function rotateLayer(axis,index,dir){
   if(isTurning) return;
   isTurning=true;
@@ -203,9 +196,11 @@ function rotateLayer(axis,index,dir){
     } else {
       group.children.slice().forEach(c=>{
         scene.attach(c);
+
         c.position.x=Math.round(c.position.x);
         c.position.y=Math.round(c.position.y);
         c.position.z=Math.round(c.position.z);
+
         c.rotation.set(0,0,0);
       });
 
@@ -217,26 +212,26 @@ function rotateLayer(axis,index,dir){
   requestAnimationFrame(anim);
 }
 
-// ===== KEY CONTROLS =====
+// ===== keyboard controls =====
 document.addEventListener("keydown",e=>{
-  if(!selectedAxis || selectedIndex===null) return;
+  if(!selectedAxis) return;
 
-  if(e.key==="a"){
-    rotateLayer(selectedAxis,selectedIndex,-1);
+  if(e.key.toLowerCase()==="a"){
+    rotateLayer(selectedAxis, selectedIndex, -1);
   }
 
-  if(e.key==="d"){
-    rotateLayer(selectedAxis,selectedIndex,1);
+  if(e.key.toLowerCase()==="d"){
+    rotateLayer(selectedAxis, selectedIndex, 1);
   }
 });
 
-// render loop
+// ===== render =====
 function animate(){
   requestAnimationFrame(animate);
   renderer.render(scene,camera);
 }
 animate();
-
 </script>
+
 </body>
 </html>
