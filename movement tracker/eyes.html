@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Motion + Face Tracker</title>
+  <title>Motion Detector</title>
   <style>
     body {
       margin: 0;
@@ -11,9 +11,13 @@
       text-align: center;
     }
 
-    h2 { margin: 10px; }
+    h2 {
+      margin: 10px;
+    }
 
-    video { display: none; }
+    video {
+      display: none;
+    }
 
     canvas {
       position: absolute;
@@ -21,132 +25,137 @@
       top: 0;
     }
   </style>
-
-  <!-- MediaPipe -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 
 <body>
 
-<h2>Motion + Face Tracking</h2>
+<h2>Motion Detector (Fast Movement + Random Sounds)</h2>
 
 <video id="video" autoplay></video>
 <canvas id="canvas"></canvas>
 
-<!-- 🔊 YOUR SOUNDS -->
-<audio class="sound" src="sound1.mp3"></audio>
-<audio class="sound" src="sound2.mp3"></audio>
-<audio class="sound" src="sound3.mp3"></audio>
-<audio class="sound" src="sound4.mp3"></audio>
-<audio class="sound" src="sound5.mp3"></audio>
+<!-- Sound Filez -->
+<audio class="sound" src="sounds/bithuh-vine-boom-392646.mp3"></audio>
+<audio class="sound" src="sounds/freesound_community-creeper-36141.mp3"></audio>
+<audio class="sound" src="sounds/Rizz-sound-effect.mp3"></audio>
+<audio class="sound" src="sounds/u_edtmwfwu7c-metal-pipe-329305.mp3"></audio>
+<audio class="sound" src="sounds/universfield-whip-02-242215.mp3"></audio>
 
 <script>
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+// get all sounds
 const sounds = document.querySelectorAll(".sound");
 
-let audioReady = true;
+let lastFrame = null;
+let lastMotionValue = 0;
 
-// unlock audio
+let audioReady = true;
+let currentSound = null;
+
+// unlock audio on first click
 document.body.addEventListener("click", () => {
-  sounds.forEach(s => {
-    s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(()=>{});
+  sounds.forEach(sound => {
+    sound.play().then(() => {
+      sound.pause();
+      sound.currentTime = 0;
+    }).catch(() => {});
   });
 });
 
-sounds.forEach(s => {
-  s.onended = () => audioReady = true;
-});
-
-function playRandomSound() {
-  const s = sounds[Math.floor(Math.random()*sounds.length)];
-  s.currentTime = 0;
-  s.play();
+// when a sound ends, allow next trigger
+function attachEndListeners() {
+  sounds.forEach(sound => {
+    sound.onended = () => {
+      audioReady = true;
+    };
+  });
 }
 
-// ======================
-// FACE TRACKING
-// ======================
-
-const faceMesh = new FaceMesh({
-  locateFile: (file) =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-});
-
-faceMesh.setOptions({
-  maxNumFaces: 1,
-  refineLandmarks: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
-
-faceMesh.onResults(results => {
-  if (!results.multiFaceLandmarks.length) return;
-
-  const lm = results.multiFaceLandmarks[0];
-
-  // ===== BLINK (eye openness) =====
-  const eyeTop = lm[159];
-  const eyeBottom = lm[145];
-
-  const eyeOpen = Math.abs(eyeTop.y - eyeBottom.y);
-
-  if (eyeOpen < 0.01) {
-    console.log("BLINK");
-  }
-
-  // ===== SMILE =====
-  const leftMouth = lm[61];
-  const rightMouth = lm[291];
-  const topLip = lm[13];
-  const bottomLip = lm[14];
-
-  const mouthWidth = Math.abs(leftMouth.x - rightMouth.x);
-  const mouthHeight = Math.abs(topLip.y - bottomLip.y);
-
-  if (mouthWidth / mouthHeight > 2.5) {
-    console.log("SMILE");
-  }
-
-  // ===== HEAD TURN =====
-  const nose = lm[1];
-  const leftEye = lm[33];
-  const rightEye = lm[263];
-
-  const faceCenter = (leftEye.x + rightEye.x) / 2;
-  const turn = nose.x - faceCenter;
-
-  if (turn > 0.05) console.log("LOOKING RIGHT");
-  if (turn < -0.05) console.log("LOOKING LEFT");
-});
-
-// ======================
-// CAMERA
-// ======================
+attachEndListeners();
 
 navigator.mediaDevices.getUserMedia({ video: true })
-.then(stream => {
-  video.srcObject = stream;
+  .then(stream => {
+    video.srcObject = stream;
 
-  video.onloadedmetadata = () => {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    video.onloadedmetadata = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      startDetection();
+    };
+  });
 
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await faceMesh.send({ image: video });
-      },
-      width: video.videoWidth,
-      height: video.videoHeight
-    });
+function playRandomSound() {
+  const index = Math.floor(Math.random() * sounds.length);
+  const sound = sounds[index];
 
-    camera.start();
-  };
-});
+  currentSound = sound;
 
+  sound.currentTime = 0;
+  sound.play().catch(err => console.log("Audio blocked:", err));
+}
+
+function startDetection() {
+  const tempCanvas = document.createElement("canvas");
+  const tempCtx = tempCanvas.getContext("2d");
+
+  setInterval(() => {
+    if (video.readyState !== 4) return;
+
+    tempCanvas.width = video.videoWidth;
+    tempCanvas.height = video.videoHeight;
+
+    tempCtx.drawImage(video, 0, 0);
+
+    const frame = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+    if (!lastFrame) {
+      lastFrame = frame;
+      return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let motionValue = 0;
+
+    const step = 30;
+
+    for (let y = 0; y < canvas.height; y += step) {
+      for (let x = 0; x < canvas.width; x += step) {
+
+        const i = (y * canvas.width + x) * 4;
+
+        const diff =
+          Math.abs(frame.data[i] - lastFrame.data[i]) +
+          Math.abs(frame.data[i+1] - lastFrame.data[i+1]) +
+          Math.abs(frame.data[i+2] - lastFrame.data[i+2]);
+
+        if (diff > 200) {
+          ctx.strokeStyle = "red";
+          ctx.strokeRect(x, y, step, step);
+          motionValue += diff;
+        }
+      }
+    }
+
+    motionValue = motionValue / 1000;
+
+    const motionSpike = motionValue - lastMotionValue;
+
+    const fastMovementThreshold = 8;
+
+    if (motionSpike > fastMovementThreshold && audioReady) {
+      audioReady = false;
+      playRandomSound();
+    }
+
+    lastMotionValue = motionValue;
+    lastFrame = frame;
+
+  }, 100);
+}
 </script>
 
 </body>
