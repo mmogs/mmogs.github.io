@@ -29,35 +29,52 @@
 
 <body>
 
-<h2>Motion Detector (Fast Movement Only)</h2>
+<h2>Motion Detector (Fast Movement + Random Sounds)</h2>
 
 <video id="video" autoplay></video>
 <canvas id="canvas"></canvas>
 
-<audio id="boom" src="sounds/bithuh-vine-boom-392646.mp3"></audio>
+<!-- Sound Filez -->
+<audio class="sound" src="sounds/bithuh-vine-boom-392646.mp3"></audio>
+<audio class="sound" src="sounds/freesound_community-creeper-36141.mp3"></audio>
+<audio class="sound" src="sounds/Rizz-sound-effect.mp3"></audio>
+<audio class="sound" src="sounds/u_edtmwfwu7c-metal-pipe-329305.mp3"></audio>
+<audio class="sound" src="sounds/universfield-whip-02-242215.mp3"></audio>
 
 <script>
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const boom = document.getElementById("boom");
+
+// get all sounds
+const sounds = document.querySelectorAll(".sound");
 
 let lastFrame = null;
 let lastMotionValue = 0;
 
 let audioReady = true;
+let currentSound = null;
 
-// require click to unlock audio
+// unlock audio on first click
 document.body.addEventListener("click", () => {
-  boom.play().then(() => {
-    boom.pause();
-    boom.currentTime = 0;
-  }).catch(() => {});
+  sounds.forEach(sound => {
+    sound.play().then(() => {
+      sound.pause();
+      sound.currentTime = 0;
+    }).catch(() => {});
+  });
 });
 
-boom.onended = () => {
-  audioReady = true;
-};
+// when a sound ends, allow next trigger
+function attachEndListeners() {
+  sounds.forEach(sound => {
+    sound.onended = () => {
+      audioReady = true;
+    };
+  });
+}
+
+attachEndListeners();
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
@@ -69,6 +86,16 @@ navigator.mediaDevices.getUserMedia({ video: true })
       startDetection();
     };
   });
+
+function playRandomSound() {
+  const index = Math.floor(Math.random() * sounds.length);
+  const sound = sounds[index];
+
+  currentSound = sound;
+
+  sound.currentTime = 0;
+  sound.play().catch(err => console.log("Audio blocked:", err));
+}
 
 function startDetection() {
   const tempCanvas = document.createElement("canvas");
@@ -113,18 +140,15 @@ function startDetection() {
       }
     }
 
-    // normalize motion
     motionValue = motionValue / 1000;
 
-    // detect FAST movement spike only
     const motionSpike = motionValue - lastMotionValue;
 
-    const fastMovementThreshold = 8; // higher = only very fast motion
+    const fastMovementThreshold = 8;
 
     if (motionSpike > fastMovementThreshold && audioReady) {
       audioReady = false;
-      boom.currentTime = 0;
-      boom.play().catch(err => console.log("Audio blocked:", err));
+      playRandomSound();
     }
 
     lastMotionValue = motionValue;
