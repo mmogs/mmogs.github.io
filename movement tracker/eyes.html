@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Motion Detector</title>
+  <title>Motion + Face Tracker</title>
   <style>
     body {
       margin: 0;
@@ -11,13 +11,9 @@
       text-align: center;
     }
 
-    h2 {
-      margin: 10px;
-    }
+    h2 { margin: 10px; }
 
-    video {
-      display: none;
-    }
+    video { display: none; }
 
     canvas {
       position: absolute;
@@ -25,137 +21,132 @@
       top: 0;
     }
   </style>
+
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 
 <body>
 
-<h2>Motion Detector (Fast Movement + Random Sounds)</h2>
+<h2>Motion + Face Tracking</h2>
 
 <video id="video" autoplay></video>
 <canvas id="canvas"></canvas>
 
-<!-- Sound Filez -->
-<audio class="sound" src="sounds/bithuh-vine-boom-392646.mp3"></audio>
-<audio class="sound" src="sounds/freesound_community-creeper-36141.mp3"></audio>
-<audio class="sound" src="sounds/Rizz-sound-effect.mp3"></audio>
-<audio class="sound" src="sounds/u_edtmwfwu7c-metal-pipe-329305.mp3"></audio>
-<audio class="sound" src="sounds/universfield-whip-02-242215.mp3"></audio>
+<!-- 🔊 YOUR SOUNDS -->
+<audio class="sound" src="sound1.mp3"></audio>
+<audio class="sound" src="sound2.mp3"></audio>
+<audio class="sound" src="sound3.mp3"></audio>
+<audio class="sound" src="sound4.mp3"></audio>
+<audio class="sound" src="sound5.mp3"></audio>
 
 <script>
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-// get all sounds
 const sounds = document.querySelectorAll(".sound");
 
-let lastFrame = null;
-let lastMotionValue = 0;
-
 let audioReady = true;
-let currentSound = null;
 
-// unlock audio on first click
+// unlock audio
 document.body.addEventListener("click", () => {
-  sounds.forEach(sound => {
-    sound.play().then(() => {
-      sound.pause();
-      sound.currentTime = 0;
-    }).catch(() => {});
+  sounds.forEach(s => {
+    s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(()=>{});
   });
 });
 
-// when a sound ends, allow next trigger
-function attachEndListeners() {
-  sounds.forEach(sound => {
-    sound.onended = () => {
-      audioReady = true;
-    };
-  });
-}
-
-attachEndListeners();
-
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => {
-    video.srcObject = stream;
-
-    video.onloadedmetadata = () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      startDetection();
-    };
-  });
+sounds.forEach(s => {
+  s.onended = () => audioReady = true;
+});
 
 function playRandomSound() {
-  const index = Math.floor(Math.random() * sounds.length);
-  const sound = sounds[index];
-
-  currentSound = sound;
-
-  sound.currentTime = 0;
-  sound.play().catch(err => console.log("Audio blocked:", err));
+  const s = sounds[Math.floor(Math.random()*sounds.length)];
+  s.currentTime = 0;
+  s.play();
 }
 
-function startDetection() {
-  const tempCanvas = document.createElement("canvas");
-  const tempCtx = tempCanvas.getContext("2d");
+// ======================
+// FACE TRACKING
+// ======================
 
-  setInterval(() => {
-    if (video.readyState !== 4) return;
+const faceMesh = new FaceMesh({
+  locateFile: (file) =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+});
 
-    tempCanvas.width = video.videoWidth;
-    tempCanvas.height = video.videoHeight;
+faceMesh.setOptions({
+  maxNumFaces: 1,
+  refineLandmarks: true,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5
+});
 
-    tempCtx.drawImage(video, 0, 0);
+faceMesh.onResults(results => {
+  if (!results.multiFaceLandmarks.length) return;
 
-    const frame = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+  const lm = results.multiFaceLandmarks[0];
 
-    if (!lastFrame) {
-      lastFrame = frame;
-      return;
-    }
+  // ===== BLINK (eye openness) =====
+  const eyeTop = lm[159];
+  const eyeBottom = lm[145];
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const eyeOpen = Math.abs(eyeTop.y - eyeBottom.y);
 
-    let motionValue = 0;
+  if (eyeOpen < 0.01) {
+    console.log("BLINK");
+  }
 
-    const step = 30;
+  // ===== SMILE =====
+  const leftMouth = lm[61];
+  const rightMouth = lm[291];
+  const topLip = lm[13];
+  const bottomLip = lm[14];
 
-    for (let y = 0; y < canvas.height; y += step) {
-      for (let x = 0; x < canvas.width; x += step) {
+  const mouthWidth = Math.abs(leftMouth.x - rightMouth.x);
+  const mouthHeight = Math.abs(topLip.y - bottomLip.y);
 
-        const i = (y * canvas.width + x) * 4;
+  if (mouthWidth / mouthHeight > 2.5) {
+    console.log("SMILE");
+  }
 
-        const diff =
-          Math.abs(frame.data[i] - lastFrame.data[i]) +
-          Math.abs(frame.data[i+1] - lastFrame.data[i+1]) +
-          Math.abs(frame.data[i+2] - lastFrame.data[i+2]);
+  // ===== HEAD TURN =====
+  const nose = lm[1];
+  const leftEye = lm[33];
+  const rightEye = lm[263];
 
-        if (diff > 200) {
-          ctx.strokeStyle = "red";
-          ctx.strokeRect(x, y, step, step);
-          motionValue += diff;
-        }
-      }
-    }
+  const faceCenter = (leftEye.x + rightEye.x) / 2;
+  const turn = nose.x - faceCenter;
 
-    motionValue = motionValue / 1000;
+  if (turn > 0.05) console.log("LOOKING RIGHT");
+  if (turn < -0.05) console.log("LOOKING LEFT");
+});
 
-    const motionSpike = motionValue - lastMotionValue;
+// ======================
+// CAMERA
+// ======================
 
-    const fastMovementThreshold = 8;
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+  video.srcObject = stream;
 
-    if (motionSpike > fastMovementThreshold && audioReady) {
-      audioReady = false;
-      playRandomSound();
-    }
+  video.onloadedmetadata = () => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    lastMotionValue = motionValue;
-    lastFrame = frame;
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await faceMesh.send({ image: video });
+      },
+      width: video.videoWidth,
+      height: video.videoHeight
+    });
 
-  }, 100);
-}
+    camera.start();
+  };
+});
+
 </script>
 
 </body>
