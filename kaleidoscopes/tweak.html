@@ -34,8 +34,8 @@
 
 <div class="sidebar">
   <label>
-    Zoom (zoom out = see more)
-    <input id="zoom" type="range" min="0.6" max="2" step="0.05" value="1.2">
+    Zoom (smooth)
+    <input id="zoom" type="range" min="0.6" max="2" step="0.01" value="0.9">
   </label>
 
   <label>
@@ -105,17 +105,24 @@ navigator.mediaDevices.getUserMedia({ video: true })
   })
   .catch(() => alert('Camera access denied'));
 
+function getSmoothZoom() {
+  const min = 0.6;
+  const max = 2;
+  const v = parseFloat(zoomSlider.value);
+  const t = (v - min) / (max - min);
+  return min * Math.pow(max / min, t);
+}
+
 function draw() {
   const w = canvas.width;
   const h = canvas.height;
   const size = Math.hypot(w, h);
-  const zoom = parseFloat(zoomSlider.value);
+  const zoom = getSmoothZoom();
   const slices = parseInt(sliceSlider.value);
 
   const centerX = w / 2;
   const centerY = h / 2;
 
-  // draw video ONCE
   fctx.setTransform(1,0,0,1,0,0);
   fctx.clearRect(0,0,frame.width,frame.height);
 
