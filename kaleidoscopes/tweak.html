@@ -84,6 +84,9 @@ const fsBtn = document.getElementById('fsBtn');
 
 let hue = 0;
 
+// stored foreground objects
+const objects = [];
+
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -96,6 +99,15 @@ fsBtn.addEventListener('click', async () => {
   const el = document.documentElement;
   if (!document.fullscreenElement) await el.requestFullscreen();
   else await document.exitFullscreen();
+});
+
+// add objects on click
+canvas.addEventListener('click', (e) => {
+  objects.push({
+    x: e.clientX,
+    y: e.clientY,
+    r: 6
+  });
 });
 
 navigator.mediaDevices.getUserMedia({ video: true })
@@ -113,6 +125,24 @@ function getSmoothZoom() {
   return min * Math.pow(max / min, t);
 }
 
+function drawObjects(ctx, centerX, centerY, angle) {
+  const cos = Math.cos(-angle);
+  const sin = Math.sin(-angle);
+
+  for (const o of objects) {
+    const dx = o.x - centerX;
+    const dy = o.y - centerY;
+
+    const rx = dx * cos - dy * sin;
+    const ry = dx * sin + dy * cos;
+
+    ctx.beginPath();
+    ctx.fillStyle = 'white';
+    ctx.arc(rx, ry, o.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function draw() {
   const w = canvas.width;
   const h = canvas.height;
@@ -123,6 +153,7 @@ function draw() {
   const centerX = w / 2;
   const centerY = h / 2;
 
+  // draw video once
   fctx.setTransform(1,0,0,1,0,0);
   fctx.clearRect(0,0,frame.width,frame.height);
 
@@ -138,17 +169,19 @@ function draw() {
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,w,h);
 
-  const angle = (Math.PI * 2) / slices;
+  const angleStep = (Math.PI * 2) / slices;
   const drawSize = size * zoom;
 
   for (let i = 0; i < slices; i++) {
+    const a = i * angleStep;
+
     ctx.save();
     ctx.translate(centerX, centerY);
-    ctx.rotate(i * angle);
+    ctx.rotate(a);
 
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.arc(0, 0, size / 2, -angle / 2, angle / 2);
+    ctx.arc(0, 0, size / 2, -angleStep / 2, angleStep / 2);
     ctx.closePath();
     ctx.clip();
 
@@ -165,6 +198,9 @@ function draw() {
       drawSize,
       drawSize
     );
+
+    // draw user objects in same slice space
+    drawObjects(ctx, centerX, centerY, a);
 
     ctx.restore();
   }
