@@ -6,7 +6,8 @@
   <title>Kaleidoscope Camera</title>
   <style>
     body { margin: 0; background: black; overflow: hidden; font-family: sans-serif; }
-    canvas { display: block; }
+    canvas { display: block; cursor: grab; }
+    canvas:active { cursor: grabbing; }
 
     .sidebar {
       position: fixed;
@@ -72,6 +73,25 @@ const discoToggle = document.getElementById('disco');
 
 let hue = 0;
 
+// Mouse-controlled center
+let centerX = window.innerWidth / 2;
+let centerY = window.innerHeight / 2;
+let dragging = false;
+
+canvas.addEventListener('mousedown', (e) => {
+  dragging = true;
+});
+
+canvas.addEventListener('mouseup', () => dragging = false);
+canvas.addEventListener('mouseleave', () => dragging = false);
+
+canvas.addEventListener('mousemove', (e) => {
+  if (dragging) {
+    centerX = e.clientX;
+    centerY = e.clientY;
+  }
+});
+
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -106,7 +126,7 @@ function draw() {
 
   for (let i = 0; i < slices; i++) {
     ctx.save();
-    ctx.translate(w / 2, h / 2);
+    ctx.translate(centerX, centerY);
     ctx.rotate(i * angle);
 
     ctx.beginPath();
@@ -137,7 +157,11 @@ function draw() {
   requestAnimationFrame(draw);
 }
 
-window.addEventListener('resize', resize);
+window.addEventListener('resize', () => {
+  resize();
+  centerX = canvas.width / 2;
+  centerY = canvas.height / 2;
+});
 </script>
 </body>
 </html>
