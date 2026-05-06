@@ -133,7 +133,7 @@ function startDetection() {
           Math.abs(frame.data[i+2] - lastFrame.data[i+2]);
 
         if (diff > 200) {
-          ctx.strokeStyle = "blue";
+          ctx.strokeStyle = "red";
           ctx.strokeRect(x, y, step, step);
           motionValue += diff;
         }
