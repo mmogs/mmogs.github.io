@@ -11,13 +11,9 @@
       text-align: center;
     }
 
-    h2 {
-      margin: 10px;
-    }
+    h2 { margin: 10px; }
 
-    video {
-      display: none;
-    }
+    video { display: none; }
 
     canvas {
       position: absolute;
@@ -29,7 +25,7 @@
 
 <body>
 
-<h2>Motion Detector (Heatmap + Random Sounds)</h2>
+<h2>Motion Detector (Blurred Heatmap + Random Sounds)</h2>
 
 <video id="video" autoplay></video>
 <canvas id="canvas"></canvas>
@@ -46,6 +42,10 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+// offscreen canvas for heatmap
+const heatCanvas = document.createElement("canvas");
+const heatCtx = heatCanvas.getContext("2d");
+
 const sounds = document.querySelectorAll(".sound");
 
 let lastFrame = null;
@@ -53,7 +53,7 @@ let lastMotionValue = 0;
 
 let audioReady = true;
 
-// unlock audio on first click
+// unlock audio
 document.body.addEventListener("click", () => {
   sounds.forEach(sound => {
     sound.play().then(() => {
@@ -69,23 +69,25 @@ sounds.forEach(sound => {
 });
 
 function playRandomSound() {
-  const index = Math.floor(Math.random() * sounds.length);
-  const sound = sounds[index];
-
+  const sound = sounds[Math.floor(Math.random() * sounds.length)];
   sound.currentTime = 0;
-  sound.play().catch(err => console.log("Audio blocked:", err));
+  sound.play().catch(() => {});
 }
 
 navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => {
-    video.srcObject = stream;
+.then(stream => {
+  video.srcObject = stream;
 
-    video.onloadedmetadata = () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      startDetection();
-    };
-  });
+  video.onloadedmetadata = () => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    heatCanvas.width = video.videoWidth;
+    heatCanvas.height = video.videoHeight;
+
+    startDetection();
+  };
+});
 
 function startDetection() {
   const tempCanvas = document.createElement("canvas");
@@ -106,18 +108,17 @@ function startDetection() {
       return;
     }
 
-    // 🔥 fade effect instead of clear (heatmap trail)
-    ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // fade old heatmap (trail effect)
+    heatCtx.fillStyle = "rgba(0,0,0,0.15)";
+    heatCtx.fillRect(0, 0, heatCanvas.width, heatCanvas.height);
 
     let motionValue = 0;
-
     const step = 30;
 
-    for (let y = 0; y < canvas.height; y += step) {
-      for (let x = 0; x < canvas.width; x += step) {
+    for (let y = 0; y < heatCanvas.height; y += step) {
+      for (let x = 0; x < heatCanvas.width; x += step) {
 
-        const i = (y * canvas.width + x) * 4;
+        const i = (y * heatCanvas.width + x) * 4;
 
         const diff =
           Math.abs(frame.data[i] - lastFrame.data[i]) +
@@ -126,7 +127,6 @@ function startDetection() {
 
         if (diff > 200) {
 
-          // normalize intensity (0 → 1)
           const intensity = Math.min(1, diff / 600);
 
           let r = 0, g = 0, b = 0;
@@ -142,18 +142,23 @@ function startDetection() {
             g = (1 - (intensity - 0.66) * 3) * 255;
           }
 
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.4)`;
-          ctx.fillRect(x, y, step, step);
+          heatCtx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
+          heatCtx.fillRect(x, y, step, step);
 
           motionValue += diff;
         }
       }
     }
 
-    motionValue = motionValue / 1000;
+    // draw blurred heatmap to main canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.filter = "blur(20px)";
+    ctx.drawImage(heatCanvas, 0, 0);
+    ctx.filter = "none";
+
+    motionValue /= 1000;
 
     const motionSpike = motionValue - lastMotionValue;
-
     const fastMovementThreshold = 8;
 
     if (motionSpike > fastMovementThreshold && audioReady) {
