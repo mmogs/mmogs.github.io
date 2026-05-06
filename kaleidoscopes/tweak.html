@@ -34,8 +34,8 @@
 
 <div class="sidebar">
   <label>
-    Zoom
-    <input id="zoom" type="range" min="1" max="3" step="0.1" value="1.5">
+    Zoom (zoom out = see more)
+    <input id="zoom" type="range" min="0.3" max="3" step="0.1" value="1">
   </label>
 
   <label>
@@ -108,14 +108,14 @@ navigator.mediaDevices.getUserMedia({ video: true })
 function draw() {
   const w = canvas.width;
   const h = canvas.height;
-  const size = Math.hypot(w, h); // true full coverage circle
+  const size = Math.hypot(w, h);
   const zoom = parseFloat(zoomSlider.value);
   const slices = parseInt(sliceSlider.value);
 
   const centerX = w / 2;
   const centerY = h / 2;
 
-  // draw video ONCE to offscreen frame
+  // draw video ONCE
   fctx.setTransform(1,0,0,1,0,0);
   fctx.clearRect(0,0,frame.width,frame.height);
 
