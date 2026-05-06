@@ -6,8 +6,7 @@
   <title>Kaleidoscope Camera</title>
   <style>
     body { margin: 0; background: black; overflow: hidden; font-family: sans-serif; }
-    canvas { display: block; cursor: grab; }
-    canvas:active { cursor: grabbing; }
+    canvas { display: block; }
 
     .sidebar {
       position: fixed;
@@ -24,7 +23,8 @@
     }
 
     label { display: flex; flex-direction: column; font-size: 14px; }
-    input, select { margin-top: 5px; }
+    input, select, button { margin-top: 5px; }
+    button { cursor: pointer; padding: 8px; border: none; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -61,19 +61,11 @@
   </label>
 
   <label>
-    Effect
-    <select id="effect">
-      <option value="none">None</option>
-      <option value="fisheye">Fishbowl</option>
-      <option value="stretch">Stretch</option>
-      <option value="squish">Squish</option>
-    </select>
-  </label>
-
-  <label>
     Disco Mode
     <input id="disco" type="checkbox">
   </label>
+
+  <button id="fsBtn">Fullscreen</button>
 </div>
 
 <script>
@@ -84,30 +76,25 @@ const ctx = canvas.getContext('2d');
 const zoomSlider = document.getElementById('zoom');
 const sliceSlider = document.getElementById('slices');
 const filterSelect = document.getElementById('filter');
-const effectSelect = document.getElementById('effect');
 const discoToggle = document.getElementById('disco');
+const fsBtn = document.getElementById('fsBtn');
 
 let hue = 0;
-
-let centerX = window.innerWidth / 2;
-let centerY = window.innerHeight / 2;
-let dragging = false;
-
-canvas.addEventListener('mousedown', () => dragging = true);
-canvas.addEventListener('mouseup', () => dragging = false);
-canvas.addEventListener('mouseleave', () => dragging = false);
-canvas.addEventListener('mousemove', (e) => {
-  if (dragging) {
-    centerX = e.clientX;
-    centerY = e.clientY;
-  }
-});
 
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
 resize();
+
+fsBtn.addEventListener('click', async () => {
+  const el = document.documentElement;
+  if (!document.fullscreenElement) {
+    await el.requestFullscreen();
+  } else {
+    await document.exitFullscreen();
+  }
+});
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
@@ -116,20 +103,15 @@ navigator.mediaDevices.getUserMedia({ video: true })
   })
   .catch(() => alert('Camera access denied'));
 
-function getEffectZoomMultiplier() {
-  const effect = effectSelect.value;
-  if (effect === 'fisheye') return 0.7;
-  if (effect === 'stretch') return 1.3;
-  if (effect === 'squish') return 0.8;
-  return 1;
-}
-
 function draw() {
   const w = canvas.width;
   const h = canvas.height;
   const size = Math.min(w, h);
   const zoom = parseFloat(zoomSlider.value);
   const slices = parseInt(sliceSlider.value);
+
+  const centerX = w / 2;
+  const centerY = h / 2;
 
   ctx.clearRect(0, 0, w, h);
 
@@ -141,9 +123,7 @@ function draw() {
   }
 
   const angle = (Math.PI * 2) / slices;
-
-  const effectZoom = getEffectZoomMultiplier();
-  const drawSize = size * zoom * effectZoom;
+  const drawSize = size * zoom;
 
   for (let i = 0; i < slices; i++) {
     ctx.save();
@@ -174,15 +154,10 @@ function draw() {
   }
 
   ctx.filter = 'none';
-
   requestAnimationFrame(draw);
 }
 
-window.addEventListener('resize', () => {
-  resize();
-  centerX = canvas.width / 2;
-  centerY = canvas.height / 2;
-});
+window.addEventListener('resize', resize);
 </script>
 </body>
 </html>
