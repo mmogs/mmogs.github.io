@@ -13,16 +13,16 @@
       top: 0;
       right: 0;
       height: 100%;
-      width: 220px;
-      background: rgba(0,0,0,0.7);
+      width: 240px;
+      background: rgba(0,0,0,0.75);
       color: white;
       padding: 15px;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 12px;
     }
 
-    label { display: flex; flex-direction: column; font-size: 14px; }
+    label { display: flex; flex-direction: column; font-size: 13px; }
     input, select, button { margin-top: 5px; }
     button { cursor: pointer; padding: 8px; border: none; border-radius: 6px; }
   </style>
@@ -41,6 +41,21 @@
   <label>
     Panes
     <input id="slices" type="range" min="4" max="24" step="1" value="12">
+  </label>
+
+  <label>
+    Hue Shift
+    <input id="hue" type="range" min="0" max="360" step="1" value="0">
+  </label>
+
+  <label>
+    Saturation
+    <input id="sat" type="range" min="0" max="4" step="0.1" value="1">
+  </label>
+
+  <label>
+    Contrast
+    <input id="con" type="range" min="0.5" max="3" step="0.1" value="1">
   </label>
 
   <label>
@@ -82,9 +97,12 @@ const filterSelect = document.getElementById('filter');
 const discoToggle = document.getElementById('disco');
 const fsBtn = document.getElementById('fsBtn');
 
-let hue = 0;
+const hueSlider = document.getElementById('hue');
+const satSlider = document.getElementById('sat');
+const conSlider = document.getElementById('con');
 
-// stored foreground objects
+let discoHue = 0;
+
 const objects = [];
 
 function resize() {
@@ -101,21 +119,15 @@ fsBtn.addEventListener('click', async () => {
   else await document.exitFullscreen();
 });
 
-// add objects on click
 canvas.addEventListener('click', (e) => {
-  objects.push({
-    x: e.clientX,
-    y: e.clientY,
-    r: 6
-  });
+  objects.push({ x: e.clientX, y: e.clientY, r: 6 });
 });
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
     video.srcObject = stream;
     requestAnimationFrame(draw);
-  })
-  .catch(() => alert('Camera access denied'));
+  });
 
 function getSmoothZoom() {
   const min = 0.6;
@@ -143,6 +155,21 @@ function drawObjects(ctx, centerX, centerY, angle) {
   }
 }
 
+function buildFilter() {
+  const base = filterSelect.value;
+
+  let hue = parseFloat(hueSlider.value);
+  if (discoToggle.checked) {
+    discoHue += 2;
+    hue += discoHue;
+  }
+
+  const sat = satSlider.value;
+  const con = conSlider.value;
+
+  return `${base} hue-rotate(${hue}deg) saturate(${sat}) contrast(${con})`;
+}
+
 function draw() {
   const w = canvas.width;
   const h = canvas.height;
@@ -153,17 +180,10 @@ function draw() {
   const centerX = w / 2;
   const centerY = h / 2;
 
-  // draw video once
   fctx.setTransform(1,0,0,1,0,0);
   fctx.clearRect(0,0,frame.width,frame.height);
 
-  if (discoToggle.checked) {
-    hue += 2;
-    fctx.filter = `hue-rotate(${hue}deg) saturate(2)`;
-  } else {
-    fctx.filter = filterSelect.value;
-  }
-
+  fctx.filter = buildFilter();
   fctx.drawImage(video, 0, 0, frame.width, frame.height);
 
   ctx.setTransform(1,0,0,1,0,0);
@@ -199,7 +219,6 @@ function draw() {
       drawSize
     );
 
-    // draw user objects in same slice space
     drawObjects(ctx, centerX, centerY, a);
 
     ctx.restore();
