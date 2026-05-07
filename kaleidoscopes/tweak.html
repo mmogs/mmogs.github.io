@@ -220,22 +220,42 @@ function draw() {
 
     const split = parseFloat(rgbSplitSlider.value);
 
+    ctx.drawImage(frame, sx, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+
     if (split > 0) {
-      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = 0.28;
+      ctx.globalCompositeOperation = 'lighter';
 
-      ctx.filter = 'brightness(1) sepia(1) saturate(100) hue-rotate(-50deg)';
-      ctx.drawImage(frame, sx - split, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+      // red fringe
+      ctx.filter = 'opacity(1)';
+      ctx.drawImage(
+        frame,
+        sx - split,
+        sy,
+        sw,
+        sh,
+        -drawSize / 2,
+        -drawSize / 2,
+        drawSize,
+        drawSize
+      );
 
-      ctx.filter = 'brightness(1) sepia(1) saturate(100) hue-rotate(60deg)';
-      ctx.drawImage(frame, sx, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+      // cyan fringe
+      ctx.drawImage(
+        frame,
+        sx + split,
+        sy,
+        sw,
+        sh,
+        -drawSize / 2,
+        -drawSize / 2,
+        drawSize,
+        drawSize
+      );
 
-      ctx.filter = 'brightness(1) sepia(1) saturate(100) hue-rotate(180deg)';
-      ctx.drawImage(frame, sx + split, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
-
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
       ctx.filter = 'none';
-    } else {
-      ctx.drawImage(frame, sx, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
     }
 
     drawObjects(ctx, centerX, centerY, a);
@@ -251,4 +271,3 @@ window.addEventListener('resize', resize);
 </script>
 </body>
 </html>
-
