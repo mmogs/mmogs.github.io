@@ -77,6 +77,11 @@
   </label>
 
   <label>
+    RGB Split
+    <input id="rgbSplit" type="range" min="0" max="30" step="1" value="0">
+  </label>
+
+  <label>
     Disco Mode
     <input id="disco" type="checkbox">
   </label>
@@ -96,6 +101,7 @@ const sliceSlider = document.getElementById('slices');
 const filterSelect = document.getElementById('filter');
 const discoToggle = document.getElementById('disco');
 const fsBtn = document.getElementById('fsBtn');
+const rgbSplitSlider = document.getElementById('rgbSplit');
 
 const hueSlider = document.getElementById('hue');
 const satSlider = document.getElementById('sat');
@@ -207,17 +213,30 @@ function draw() {
 
     if (i % 2 === 0) ctx.scale(1, -1);
 
-    ctx.drawImage(
-      frame,
-      (frame.width - size / zoom) / 2,
-      (frame.height - size / zoom) / 2,
-      size / zoom,
-      size / zoom,
-      -drawSize / 2,
-      -drawSize / 2,
-      drawSize,
-      drawSize
-    );
+    const sx = (frame.width - size / zoom) / 2;
+    const sy = (frame.height - size / zoom) / 2;
+    const sw = size / zoom;
+    const sh = size / zoom;
+
+    const split = parseFloat(rgbSplitSlider.value);
+
+    if (split > 0) {
+      ctx.globalCompositeOperation = 'screen';
+
+      ctx.filter = 'brightness(1) sepia(1) saturate(100) hue-rotate(-50deg)';
+      ctx.drawImage(frame, sx - split, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+
+      ctx.filter = 'brightness(1) sepia(1) saturate(100) hue-rotate(60deg)';
+      ctx.drawImage(frame, sx, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+
+      ctx.filter = 'brightness(1) sepia(1) saturate(100) hue-rotate(180deg)';
+      ctx.drawImage(frame, sx + split, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.filter = 'none';
+    } else {
+      ctx.drawImage(frame, sx, sy, sw, sh, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+    }
 
     drawObjects(ctx, centerX, centerY, a);
 
@@ -232,3 +251,4 @@ window.addEventListener('resize', resize);
 </script>
 </body>
 </html>
+
