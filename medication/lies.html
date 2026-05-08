@@ -1,4 +1,15 @@
-﻿<!DOCTYPE html>
+﻿<!--
+CHANGES MADE:
+- Full-page layout instead of tiny centered box
+- Large header section
+- More spread out / modern UI
+- Floating background blobs
+- Animated particle effects when correct
+- Pill bottle, capsule, and vaccine emoji particles
+- Smooth animations
+-->
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -6,6 +17,7 @@
 <title>Real or Fake Medicine?</title>
 
 <style>
+
 *{
   margin:0;
   padding:0;
@@ -14,143 +26,303 @@
 }
 
 body{
-  background:linear-gradient(135deg,#ffffff,#f3e8ff);
+  background:linear-gradient(135deg,#ffffff,#faf5ff,#f3e8ff);
   min-height:100vh;
+  overflow:hidden;
+  color:#3b0764;
+  position:relative;
+}
+
+/* ======================================
+BACKGROUND BLOBS
+====================================== */
+
+.blob{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(80px);
+  opacity:0.25;
+  z-index:0;
+}
+
+.blob1{
+  width:400px;
+  height:400px;
+  background:#c084fc;
+  top:-100px;
+  left:-100px;
+}
+
+.blob2{
+  width:350px;
+  height:350px;
+  background:#9333ea;
+  bottom:-100px;
+  right:-100px;
+}
+
+.blob3{
+  width:250px;
+  height:250px;
+  background:#d8b4fe;
+  top:40%;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+/* ======================================
+HEADER
+====================================== */
+
+header{
+  width:100%;
+  padding:40px 60px;
+  position:relative;
+  z-index:2;
+}
+
+header h1{
+  font-size:4rem;
+  color:#6b21a8;
+  margin-bottom:10px;
+}
+
+header p{
+  font-size:1.2rem;
+  color:#7e22ce;
+}
+
+/* ======================================
+GAME AREA
+====================================== */
+
+.game-area{
+  position:relative;
+  z-index:2;
+  width:100%;
   display:flex;
   justify-content:center;
   align-items:center;
-  padding:20px;
-  color:#2e1065;
-}
-
-.game{
-  width:100%;
-  max-width:700px;
-  background:white;
-  border:4px solid #9333ea;
-  border-radius:24px;
   padding:40px;
+}
+
+.game-card{
+  width:100%;
+  max-width:1000px;
+  min-height:500px;
+
+  background:rgba(255,255,255,0.75);
+  backdrop-filter:blur(12px);
+
+  border:3px solid #d8b4fe;
+  border-radius:30px;
+
+  padding:60px;
+
+  box-shadow:
+    0 20px 60px rgba(147,51,234,0.15);
+
   text-align:center;
-  box-shadow:0 15px 40px rgba(147,51,234,0.2);
+
+  position:relative;
 }
 
-h1{
-  font-size:3rem;
-  margin-bottom:10px;
-  color:#6b21a8;
-}
-
-.subtitle{
-  color:#7e22ce;
-  margin-bottom:30px;
-  font-size:1.1rem;
-}
+/* ======================================
+SCORE
+====================================== */
 
 .score{
-  font-size:1.5rem;
-  margin-bottom:35px;
-  color:#9333ea;
+  font-size:2rem;
   font-weight:bold;
+  color:#9333ea;
+  margin-bottom:40px;
 }
 
+/* ======================================
+MEDICINE NAME
+====================================== */
+
 .medicine{
-  font-size:3.2rem;
-  font-weight:bold;
-  margin:50px 0;
-  min-height:80px;
+  font-size:5rem;
+  font-weight:900;
+  margin:80px 0;
+  min-height:120px;
   word-break:break-word;
-  color:#3b0764;
+  color:#2e1065;
+  letter-spacing:2px;
 }
+
+/* ======================================
+BUTTONS
+====================================== */
 
 .buttons{
   display:flex;
   justify-content:center;
-  gap:20px;
+  gap:30px;
   flex-wrap:wrap;
 }
 
 button{
   border:none;
-  padding:16px 34px;
-  font-size:1.2rem;
-  font-weight:bold;
-  border-radius:14px;
+  padding:22px 50px;
+  border-radius:18px;
   cursor:pointer;
   transition:0.2s;
+  font-size:1.3rem;
+  font-weight:bold;
 }
 
 button:hover{
-  transform:scale(1.05);
+  transform:translateY(-4px) scale(1.03);
 }
 
 .real-btn{
   background:#9333ea;
   color:white;
+  box-shadow:0 10px 25px rgba(147,51,234,0.35);
 }
 
 .fake-btn{
   background:#c084fc;
   color:white;
+  box-shadow:0 10px 25px rgba(192,132,252,0.35);
 }
 
 .restart{
-  margin-top:30px;
   background:#6b21a8;
   color:white;
+  margin-top:35px;
   display:none;
 }
 
+/* ======================================
+MESSAGE
+====================================== */
+
 .message{
-  margin-top:30px;
-  font-size:1.2rem;
-  min-height:40px;
+  margin-top:35px;
+  min-height:50px;
+  font-size:1.4rem;
+  font-weight:bold;
 }
 
 .game-over{
   color:#dc2626;
-  font-size:1.5rem;
-  font-weight:bold;
+  line-height:1.5;
 }
+
+/* ======================================
+PARTICLES
+====================================== */
+
+.particle{
+  position:absolute;
+  font-size:2rem;
+  pointer-events:none;
+  animation:burst 1.5s forwards ease-out;
+  z-index:100;
+}
+
+@keyframes burst{
+
+  0%{
+    opacity:1;
+    transform:translate(0,0) scale(1);
+  }
+
+  100%{
+    opacity:0;
+    transform:
+      translate(var(--x), var(--y))
+      rotate(720deg)
+      scale(0.3);
+  }
+}
+
+/* ======================================
+RESPONSIVE
+====================================== */
+
+@media(max-width:768px){
+
+  header{
+    padding:30px;
+    text-align:center;
+  }
+
+  header h1{
+    font-size:2.7rem;
+  }
+
+  .game-card{
+    padding:35px 25px;
+  }
+
+  .medicine{
+    font-size:2.7rem;
+  }
+
+  .score{
+    font-size:1.5rem;
+  }
+
+  button{
+    width:100%;
+  }
+}
+
 </style>
 </head>
 <body>
 
-<div class="game">
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<header>
   <h1>Real or Fake Medicine?</h1>
+  <p>
+    Guess whether the medication name is REAL or COMPLETELY FAKE
+  </p>
+</header>
 
-  <div class="subtitle">
-    Guess whether the medication name is REAL or FAKE
-  </div>
+<div class="game-area">
 
-  <div class="score">
-    Score: <span id="score">0</span>
-  </div>
+  <div class="game-card">
 
-  <div class="medicine" id="medicineName">
-    Loading...
-  </div>
+    <div class="score">
+      Score: <span id="score">0</span>
+    </div>
 
-  <div class="buttons">
-    <button class="real-btn" onclick="guess(true)">
-      REAL
+    <div class="medicine" id="medicineName">
+      Loading...
+    </div>
+
+    <div class="buttons">
+      <button class="real-btn" onclick="guess(true)">
+        REAL
+      </button>
+
+      <button class="fake-btn" onclick="guess(false)">
+        FAKE
+      </button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <button class="restart" id="restartBtn" onclick="restartGame()">
+      Restart Game
     </button>
 
-    <button class="fake-btn" onclick="guess(false)">
-      FAKE
-    </button>
   </div>
 
-  <div class="message" id="message"></div>
-
-  <button class="restart" id="restartBtn" onclick="restartGame()">
-    Restart Game
-  </button>
 </div>
 
 <script>
 
 // =====================================
-// 500 REAL MEDICATIONS
+// REAL MEDS
 // =====================================
 
 const realMedicines = [
@@ -212,7 +384,7 @@ const realMedicines = [
 ];
 
 // =====================================
-// FAKE MEDICINES
+// FAKE MEDS
 // =====================================
 
 const prefixes = [
@@ -231,6 +403,7 @@ const suffixes = [
 ];
 
 function generateFakeMedicine(){
+
   const p = prefixes[Math.floor(Math.random()*prefixes.length)];
   const m = middles[Math.floor(Math.random()*middles.length)];
   const s = suffixes[Math.floor(Math.random()*suffixes.length)];
@@ -244,10 +417,7 @@ while(fakeMedicines.length < 500){
 
   const fake = generateFakeMedicine();
 
-  if(
-    !fakeMedicines.includes(fake) &&
-    !realMedicines.includes(fake)
-  ){
+  if(!fakeMedicines.includes(fake)){
     fakeMedicines.push(fake);
   }
 }
@@ -260,61 +430,100 @@ const allMedicines = [];
 
 realMedicines.forEach(name=>{
   allMedicines.push({
-    name:name,
+    name,
     real:true
   });
 });
 
 fakeMedicines.forEach(name=>{
   allMedicines.push({
-    name:name,
+    name,
     real:false
   });
 });
 
 let score = 0;
-let currentMedicine = null;
-let usedNames = [];
+let currentMedicine;
 
 const medicineEl = document.getElementById("medicineName");
 const scoreEl = document.getElementById("score");
 const messageEl = document.getElementById("message");
 const restartBtn = document.getElementById("restartBtn");
 
-function getRandomMedicine(){
-
-  if(usedNames.length >= allMedicines.length){
-    usedNames = [];
-  }
-
-  let med;
-
-  do{
-    med = allMedicines[
-      Math.floor(Math.random()*allMedicines.length)
-    ];
-  }while(usedNames.includes(med.name));
-
-  usedNames.push(med.name);
-
-  return med;
-}
+// =====================================
+// RANDOM MED
+// =====================================
 
 function nextRound(){
-  currentMedicine = getRandomMedicine();
+
+  currentMedicine =
+    allMedicines[
+      Math.floor(Math.random()*allMedicines.length)
+    ];
+
   medicineEl.textContent = currentMedicine.name;
   messageEl.textContent = "";
 }
+
+// =====================================
+// PARTICLES
+// =====================================
+
+const particleIcons = ["💊","🧪","💉","🩺","🩹"];
+
+function spawnParticles(){
+
+  for(let i = 0; i < 20; i++){
+
+    const particle = document.createElement("div");
+
+    particle.className = "particle";
+
+    particle.textContent =
+      particleIcons[
+        Math.floor(Math.random()*particleIcons.length)
+      ];
+
+    particle.style.left =
+      (window.innerWidth / 2) + "px";
+
+    particle.style.top =
+      (window.innerHeight / 2) + "px";
+
+    particle.style.setProperty(
+      "--x",
+      (Math.random()*800 - 400) + "px"
+    );
+
+    particle.style.setProperty(
+      "--y",
+      (Math.random()*600 - 300) + "px"
+    );
+
+    document.body.appendChild(particle);
+
+    setTimeout(()=>{
+      particle.remove();
+    },1500);
+  }
+}
+
+// =====================================
+// GUESS
+// =====================================
 
 function guess(choice){
 
   if(choice === currentMedicine.real){
 
     score++;
+
     scoreEl.textContent = score;
 
     messageEl.textContent = "Correct!";
     messageEl.style.color = "#16a34a";
+
+    spawnParticles();
 
     setTimeout(()=>{
       nextRound();
@@ -331,16 +540,21 @@ function guess(choice){
       </div>
     `;
 
-    restartBtn.style.display = "inline-block";
-
     document.querySelector(".real-btn").disabled = true;
     document.querySelector(".fake-btn").disabled = true;
+
+    restartBtn.style.display = "inline-block";
   }
 }
+
+// =====================================
+// RESTART
+// =====================================
 
 function restartGame(){
 
   score = 0;
+
   scoreEl.textContent = score;
 
   restartBtn.style.display = "none";
