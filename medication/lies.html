@@ -1,119 +1,125 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Real or Fake Medicine?</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Real or Fake Medicine?</title>
 
-  <style>
-    *{
-      box-sizing:border-box;
-      margin:0;
-      padding:0;
-      font-family:Arial, Helvetica, sans-serif;
-    }
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial, Helvetica, sans-serif;
+}
 
-    body{
-      background:#111827;
-      color:white;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      min-height:100vh;
-      padding:20px;
-    }
+body{
+  background:linear-gradient(135deg,#ffffff,#f3e8ff);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+  color:#2e1065;
+}
 
-    .game{
-      width:100%;
-      max-width:700px;
-      background:#1f2937;
-      border-radius:20px;
-      padding:40px;
-      text-align:center;
-      box-shadow:0 0 30px rgba(0,0,0,0.4);
-    }
+.game{
+  width:100%;
+  max-width:700px;
+  background:white;
+  border:4px solid #9333ea;
+  border-radius:24px;
+  padding:40px;
+  text-align:center;
+  box-shadow:0 15px 40px rgba(147,51,234,0.2);
+}
 
-    h1{
-      margin-bottom:10px;
-      font-size:2.5rem;
-    }
+h1{
+  font-size:3rem;
+  margin-bottom:10px;
+  color:#6b21a8;
+}
 
-    .subtitle{
-      color:#9ca3af;
-      margin-bottom:30px;
-    }
+.subtitle{
+  color:#7e22ce;
+  margin-bottom:30px;
+  font-size:1.1rem;
+}
 
-    .score{
-      font-size:1.3rem;
-      margin-bottom:30px;
-      color:#34d399;
-    }
+.score{
+  font-size:1.5rem;
+  margin-bottom:35px;
+  color:#9333ea;
+  font-weight:bold;
+}
 
-    .medicine{
-      font-size:3rem;
-      font-weight:bold;
-      margin:40px 0;
-      word-break:break-word;
-      color:#f9fafb;
-    }
+.medicine{
+  font-size:3.2rem;
+  font-weight:bold;
+  margin:50px 0;
+  min-height:80px;
+  word-break:break-word;
+  color:#3b0764;
+}
 
-    .buttons{
-      display:flex;
-      gap:20px;
-      justify-content:center;
-      flex-wrap:wrap;
-    }
+.buttons{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  flex-wrap:wrap;
+}
 
-    button{
-      border:none;
-      padding:16px 32px;
-      border-radius:12px;
-      font-size:1.2rem;
-      cursor:pointer;
-      transition:0.2s;
-      font-weight:bold;
-    }
+button{
+  border:none;
+  padding:16px 34px;
+  font-size:1.2rem;
+  font-weight:bold;
+  border-radius:14px;
+  cursor:pointer;
+  transition:0.2s;
+}
 
-    .real-btn{
-      background:#10b981;
-      color:white;
-    }
+button:hover{
+  transform:scale(1.05);
+}
 
-    .fake-btn{
-      background:#ef4444;
-      color:white;
-    }
+.real-btn{
+  background:#9333ea;
+  color:white;
+}
 
-    button:hover{
-      transform:scale(1.05);
-    }
+.fake-btn{
+  background:#c084fc;
+  color:white;
+}
 
-    .message{
-      margin-top:25px;
-      font-size:1.2rem;
-      min-height:30px;
-    }
+.restart{
+  margin-top:30px;
+  background:#6b21a8;
+  color:white;
+  display:none;
+}
 
-    .restart{
-      margin-top:30px;
-      background:#3b82f6;
-      color:white;
-      display:none;
-    }
+.message{
+  margin-top:30px;
+  font-size:1.2rem;
+  min-height:40px;
+}
 
-    .game-over{
-      color:#f87171;
-      font-size:1.5rem;
-      margin-top:20px;
-    }
-  </style>
+.game-over{
+  color:#dc2626;
+  font-size:1.5rem;
+  font-weight:bold;
+}
+</style>
 </head>
 <body>
 
 <div class="game">
   <h1>Real or Fake Medicine?</h1>
+
   <div class="subtitle">
-    Guess whether the medicine name is REAL or FAKE.
+    Guess whether the medication name is REAL or FAKE
   </div>
 
   <div class="score">
@@ -125,8 +131,13 @@
   </div>
 
   <div class="buttons">
-    <button class="real-btn" onclick="guess(true)">REAL</button>
-    <button class="fake-btn" onclick="guess(false)">FAKE</button>
+    <button class="real-btn" onclick="guess(true)">
+      REAL
+    </button>
+
+    <button class="fake-btn" onclick="guess(false)">
+      FAKE
+    </button>
   </div>
 
   <div class="message" id="message"></div>
@@ -137,194 +148,211 @@
 </div>
 
 <script>
-  // =========================================
-  // REAL MEDICINE NAMES
-  // =========================================
 
-  const realMedicinesBase = [
-    "Ibuprofen","Acetaminophen","Amoxicillin","Metformin","Lisinopril",
-    "Atorvastatin","Amlodipine","Omeprazole","Azithromycin","Prednisone",
-    "Losartan","Gabapentin","Hydrochlorothiazide","Sertraline","Fluoxetine",
-    "Citalopram","Escitalopram","Clindamycin","Doxycycline","Tramadol",
-    "Warfarin","Insulin","Levothyroxine","Meloxicam","Naproxen",
-    "Cyclobenzaprine","Bupropion","Venlafaxine","Clonazepam","Diazepam",
-    "Alprazolam","Cetirizine","Loratadine","Fexofenadine","Montelukast",
-    "Zolpidem","Trazodone","Mirtazapine","Quetiapine","Olanzapine",
-    "Risperidone","Aripiprazole","Lamotrigine","Topiramate","Valacyclovir",
-    "Acyclovir","Oseltamivir","Cephalexin","Cefdinir","Ceftriaxone",
-    "Pantoprazole","Famotidine","Ranitidine","Carvedilol","Metoprolol",
-    "Propranolol","Spironolactone","Furosemide","Rosuvastatin","Simvastatin",
-    "Pravastatin","Clopidogrel","Aspirin","Nitroglycerin","Digoxin",
-    "Sildenafil","Tadalafil","Finasteride","Tamsulosin","Oxybutynin",
-    "Methotrexate","Hydroxychloroquine","Allopurinol","Colchicine",
-    "Tacrolimus","Cyclosporine","Morphine","Hydromorphone","Oxycodone",
-    "Codeine","Buprenorphine","Naloxone","Rivaroxaban","Apixaban",
-    "Duloxetine","Buspirone","Atomoxetine","Amphetamine","Methylphenidate",
-    "Semaglutide","Tirzepatide","Empagliflozin","Canagliflozin","Glipizide"
-  ];
+// =====================================
+// 500 REAL MEDICATIONS
+// =====================================
 
-  // Expand to 500 realistic real medicine names
-  const realMedicines = [];
+const realMedicines = [
 
-  for(let i = 0; i < 5; i++){
-    realMedicinesBase.forEach(name => {
-      realMedicines.push(name);
+"Abilify","Aciphex","Actos","Adderall","Advair","Aleve","Allegra","Altace","Ambien","Amoxil",
+"Aricept","Ativan","Augmentin","Avapro","Avastin","Axid","Azmacort","Bactrim","Benadryl","Bentyl",
+"Biaxin","Boniva","Botox","Breo","Bystolic","Capoten","Cardizem","Celebrex","Celexa","Cialis",
+"Cipro","Claritin","Clarinex","Colace","Concerta","Coreg","Coumadin","Cozaar","Crestor","Cymbalta",
+"Depakote","Detrol","Diflucan","Dilantin","Diovan","Dramamine","Effexor","Eliquis","Elocon","Emend",
+"Enablex","Epipen","Estrace","Exelon","Farxiga","Feldene","Fioricet","Flagyl","Flomax","Flonase",
+"Focalin","Fosamax","Fosinopril","Gaviscon","Geodon","Glucophage","Humalog","Humira","Hyzaar","Imdur",
+"Imitrex","Inderal","Januvia","Keppra","Klonopin","Lanoxin","Lantus","Lasix","Latuda","Levaquin",
+"Lexapro","Lipitor","Lopressor","Lotensin","Lovenox","Lunesta","Macrobid","Maxalt","Mirapex","Mobic",
+"Nasonex","Neurontin","Nexium","Norco","Norvasc","Nuvaring","Omnicef","Onglyza","Orencia","Paxil",
 
-      // Add realistic variants
-      realMedicines.push(name + " XR");
-      realMedicines.push(name + " ER");
-      realMedicines.push(name + " Plus");
-      realMedicines.push(name + " Forte");
-    });
+"Penlac","Percocet","Plavix","Pradaxa","Prandin","Prevacid","Prilosec","ProAir","Proscar","Protonix",
+"Pulmicort","Qsymia","Ramipril","Relafen","Restasis","Ritalin","Rogaine","Sabril","Seroquel","Singulair",
+"Skelaxin","Spiriva","Strattera","Suboxone","Sudafed","Synthroid","Tagamet","Tambocor","Tamiflu","Tapazole",
+"Tegretol","Temodar","Tenormin","Tofranil","Topamax","Toradol","Travatan","Trelegy","Tricor","Trileptal",
+"Ultram","Uloric","Valium","Ventolin","Verelan","Viagra","Vibramycin","Vicodin","Vyvanse","Wellbutrin",
+"Xalatan","Xanax","Xarelto","Xopenex","Yasmin","Zanaflex","Zantac","Zaroxolyn","Zestril","Zetia",
+
+"Zithromax","Zocor","Zofran","Zoloft","Zyrtec","Acetazolamide","Acipimox","Acyclovir","Adapalene","Albendazole",
+"Albuterol","Alendronate","Alfuzosin","Allopurinol","Almotriptan","Alosetron","Alprazolam","Amantadine","Ambrisentan","Amcinonide",
+"Amikacin","Amitriptyline","Amlodipine","Amoxicillin","Ampicillin","Anastrozole","Anidulafungin","Apixaban","Armodafinil","Asenapine",
+"Aspirin","Atenolol","Atomoxetine","Atorvastatin","Atovaquone","Azathioprine","Azelastine","Azithromycin","Baclofen","Beclomethasone",
+"Benazepril","Benzonatate","Betamethasone","Bicalutamide","Bisacodyl","Bisoprolol","Brimonidine","Bromocriptine","Budesonide","Bumetanide",
+"Bupropion","Buspirone","Calcitriol","Canagliflozin","Candesartan","Capecitabine","Carbamazepine","Carbidopa","Carisoprodol","Carvedilol",
+"Cefdinir","Cefixime","Cefpodoxime","Ceftriaxone","Celecoxib","Cephalexin","Cetirizine","Chlordiazepoxide","Chlorhexidine","Chloroquine",
+"Cholestyramine","Ciclopirox","Cilostazol","Cinacalcet","Ciprofloxacin","Citalopram","Clarithromycin","Clindamycin","Clobetasol","Clonazepam",
+
+"Clonidine","Clopidogrel","Clozapine","Colchicine","Cyclobenzaprine","Cyclosporine","Dabigatran","Dapagliflozin","Darifenacin","Desloratadine",
+"Desmopressin","Desvenlafaxine","Dexamethasone","Dexlansoprazole","Dexmethylphenidate","Diazepam","Diclofenac","Dicyclomine","Digoxin","Diltiazem",
+"Diphenhydramine","Dipyridamole","Divalproex","Donepezil","Dorzolamide","Doxazosin","Doxycycline","Dronabinol","Drospirenone","Dulaglutide",
+"Duloxetine","Dupilumab","Edoxaban","Efavirenz","Eletriptan","Empagliflozin","Enalapril","Enoxaparin","Entacapone","Eplerenone",
+"Ergocalciferol","Erlotinib","Escitalopram","Esomeprazole","Estradiol","Eszopiclone","Etanercept","Ethambutol","Ethinyl","Etodolac",
+"Ezetimibe","Famciclovir","Famotidine","Fenofibrate","Fentanyl","Ferrous","Finasteride","Fluconazole","Fludrocortisone","Fluoxetine",
+"Flutamide","Fluticasone","Fondaparinux","Formoterol","Fosinopril","Frovatriptan","Furosemide","Gabapentin","Galantamine","Gemfibrozil",
+"Glimepiride","Glipizide","Glyburide","Golimumab","Guanfacine","Halobetasol","Haloperidol","Heparin","Hydralazine","Hydrochlorothiazide",
+"Hydrocodone","Hydrocortisone","Hydromorphone","Hydroxychloroquine","Hydroxyzine","Ibuprofen","Icosapent","Ifosfamide","Imipramine","Indapamide",
+"Insulin","Ipratropium","Irbesartan","Irinotecan","Isosorbide","Itraconazole","Ivabradine","Ivermectin","Ketoconazole","Ketorolac",
+
+"Labetalol","Lacosamide","Lamotrigine","Lansoprazole","Leflunomide","Lenalidomide","Levetiracetam","Levocetirizine","Levofloxacin","Levothyroxine",
+"Linaclotide","Linagliptin","Liraglutide","Lisdexamfetamine","Lisinopril","Lithium","Loperamide","Lorazepam","Losartan","Lovastatin",
+"Lumateperone","Medroxyprogesterone","Melatonin","Meloxicam","Memantine","Meropenem","Mesalamine","Metformin","Methadone","Methimazole",
+"Methocarbamol","Methotrexate","Methylphenidate","Metoclopramide","Metolazone","Metoprolol","Metronidazole","Midodrine","Minocycline","Mirtazapine",
+"Misoprostol","Modafinil","Montelukast","Morphine","Moxifloxacin","Mupirocin","Mycophenolate","Nabumetone","Nadolol","Naloxone",
+"Naltrexone","Naproxen","Naratriptan","Nebivolol","Nifedipine","Nitrofurantoin","Nitroglycerin","Nortriptyline","Nystatin","Olanzapine",
+"Olmesartan","Ondansetron","Oseltamivir","Oxybutynin","Oxycodone","Ozempic","Paliperidone","Pantoprazole","Paroxetine","Pegfilgrastim",
+"Penicillin","Perindopril","Phenazopyridine","Phentermine","Pioglitazone","Piroxicam","Pitavastatin","Pneumovax","Polyethylene","Posaconazole",
+"Potassium","Pramipexole","Prasugrel","Pravastatin","Prazosin","Prednisone","Pregabalin","Primidone","Probenecid","Prochlorperazine",
+"Progesterone","Promethazine","Propafenone","Propranolol","Quetiapine","Quinapril","Rabeprazole","Raloxifene","Ramelteon","Ranolazine",
+"Rasagiline","Rifaximin","Rimegepant","Risperidone","Rivaroxaban","Rizatriptan","Rosuvastatin","Rotigotine","Ruxolitinib","Sacubitril",
+"Scopolamine","Secukinumab","Semaglutide","Sertraline","Sevelamer","Sildenafil","Simvastatin","Sitagliptin","Solifenacin","Sorafenib",
+"Sotalol","Spironolactone","Sulfasalazine","Sumatriptan","Tacrolimus","Tadalafil","Tamsulosin","Temazepam","Terazosin","Terbinafine",
+"Testosterone","Tetracycline","Thalidomide","Theophylline","Ticagrelor","Tizanidine","Tolterodine","Topiramate","Torsemide","Tramadol",
+"Trazodone","Triamcinolone","Trihexyphenidyl","Trimethoprim","Ubrogepant","Umeclidinium","Ustekinumab","Valacyclovir","Valsartan","Vancomycin",
+"Venlafaxine","Verapamil","Vilazodone","Voriconazole","Warfarin","Xylometazoline","Zaleplon","Ziprasidone","Zolmitriptan","Zonisamide"
+];
+
+// =====================================
+// FAKE MEDICINES
+// =====================================
+
+const prefixes = [
+"Zy","Vel","Nor","Tri","Xan","Lum","Dex","Neo","Astra","Vira",
+"Mira","Ketra","Cura","Omni","Nexa","Rela","Vexo","Zora","Cryo","Prax"
+];
+
+const middles = [
+"lume","vex","dren","fira","mora","zetra","laxon","vira","nexa","cetra",
+"zol","trex","vion","dara","phena","trixa","mune","cora","vexa","dorin"
+];
+
+const suffixes = [
+"pril","mab","zine","drol","mycin","vex","tide","sone","line","xate",
+"tril","dine","zol","fex","bar","vax","nium","trel","prox","cor"
+];
+
+function generateFakeMedicine(){
+  const p = prefixes[Math.floor(Math.random()*prefixes.length)];
+  const m = middles[Math.floor(Math.random()*middles.length)];
+  const s = suffixes[Math.floor(Math.random()*suffixes.length)];
+
+  return p + m + s;
+}
+
+const fakeMedicines = [];
+
+while(fakeMedicines.length < 500){
+
+  const fake = generateFakeMedicine();
+
+  if(
+    !fakeMedicines.includes(fake) &&
+    !realMedicines.includes(fake)
+  ){
+    fakeMedicines.push(fake);
   }
+}
 
-  // Limit to 500
-  realMedicines.length = 500;
+// =====================================
+// GAME SETUP
+// =====================================
 
-  // =========================================
-  // FAKE MEDICINE NAME GENERATOR
-  // =========================================
+const allMedicines = [];
 
-  const prefixes = [
-    "Zy","Vel","Nor","Tri","Xan","Lum","Dex","Corti","Neo","Astra",
-    "Vira","Lumi","Cryo","Mira","Zora","Phena","Rela","Tavo","Lexa","Omni",
-    "Cura","Nexa","Vexo","Reno","Ketra","Soma","Prax","Velo","Nuro","Cali"
-  ];
-
-  const middles = [
-    "flu","med","vex","dron","lax","vira","nex","zol","tan","cept",
-    "lume","vion","ther","cyl","phor","trax","niva","bex","mora","zine",
-    "trex","lora","vane","trex","fira","dexa","mune","cetra","vixa","lune"
-  ];
-
-  const suffixes = [
-    "line","zol","pril","mab","caine","dine","xate","tril","vex","drol",
-    "mycin","zine","tide","xol","bar","lex","cor","nate","vax","drine",
-    "cet","nium","dexa","mune","lide","vate","prox","trel","fex","sone"
-  ];
-
-  function generateFakeName() {
-    const p = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const m = middles[Math.floor(Math.random() * middles.length)];
-    const s = suffixes[Math.floor(Math.random() * suffixes.length)];
-
-    return p + m + s;
-  }
-
-  const fakeMedicines = [];
-
-  while(fakeMedicines.length < 500){
-    const fake = generateFakeName();
-
-    if(
-      !fakeMedicines.includes(fake) &&
-      !realMedicines.includes(fake)
-    ){
-      fakeMedicines.push(fake);
-    }
-  }
-
-  // =========================================
-  // GAME LOGIC
-  // =========================================
-
-  const allMedicines = [];
-
-  realMedicines.forEach(name => {
-    allMedicines.push({
-      name,
-      real: true
-    });
+realMedicines.forEach(name=>{
+  allMedicines.push({
+    name:name,
+    real:true
   });
+});
 
-  fakeMedicines.forEach(name => {
-    allMedicines.push({
-      name,
-      real: false
-    });
+fakeMedicines.forEach(name=>{
+  allMedicines.push({
+    name:name,
+    real:false
   });
+});
 
-  let score = 0;
-  let currentMedicine = null;
-  let usedNames = [];
+let score = 0;
+let currentMedicine = null;
+let usedNames = [];
 
-  const medicineEl = document.getElementById("medicineName");
-  const scoreEl = document.getElementById("score");
-  const messageEl = document.getElementById("message");
-  const restartBtn = document.getElementById("restartBtn");
+const medicineEl = document.getElementById("medicineName");
+const scoreEl = document.getElementById("score");
+const messageEl = document.getElementById("message");
+const restartBtn = document.getElementById("restartBtn");
 
-  function getRandomMedicine() {
+function getRandomMedicine(){
 
-    // reset used names if all used
-    if(usedNames.length >= allMedicines.length){
-      usedNames = [];
-    }
-
-    let medicine;
-
-    do{
-      medicine = allMedicines[
-        Math.floor(Math.random() * allMedicines.length)
-      ];
-    } while(usedNames.includes(medicine.name));
-
-    usedNames.push(medicine.name);
-
-    return medicine;
+  if(usedNames.length >= allMedicines.length){
+    usedNames = [];
   }
 
-  function nextRound(){
-    currentMedicine = getRandomMedicine();
-    medicineEl.textContent = currentMedicine.name;
-    messageEl.textContent = "";
-  }
+  let med;
 
-  function guess(playerGuess){
+  do{
+    med = allMedicines[
+      Math.floor(Math.random()*allMedicines.length)
+    ];
+  }while(usedNames.includes(med.name));
 
-    if(playerGuess === currentMedicine.real){
+  usedNames.push(med.name);
 
-      score++;
-      scoreEl.textContent = score;
+  return med;
+}
 
-      messageEl.textContent = "Correct!";
-      messageEl.style.color = "#34d399";
+function nextRound(){
+  currentMedicine = getRandomMedicine();
+  medicineEl.textContent = currentMedicine.name;
+  messageEl.textContent = "";
+}
 
-      nextRound();
+function guess(choice){
 
-    } else {
+  if(choice === currentMedicine.real){
 
-      medicineEl.textContent = currentMedicine.name;
-
-      messageEl.innerHTML = `
-        <div class="game-over">
-          WRONG! "${currentMedicine.name}" was
-          ${currentMedicine.real ? "REAL" : "FAKE"}.
-          <br><br>
-          Final Score: ${score}
-        </div>
-      `;
-
-      restartBtn.style.display = "inline-block";
-
-      // disable buttons
-      document.querySelector(".real-btn").disabled = true;
-      document.querySelector(".fake-btn").disabled = true;
-    }
-  }
-
-  function restartGame(){
-    score = 0;
+    score++;
     scoreEl.textContent = score;
 
-    restartBtn.style.display = "none";
+    messageEl.textContent = "Correct!";
+    messageEl.style.color = "#16a34a";
 
-    document.querySelector(".real-btn").disabled = false;
-    document.querySelector(".fake-btn").disabled = false;
+    setTimeout(()=>{
+      nextRound();
+    },300);
 
-    nextRound();
+  } else {
+
+    messageEl.innerHTML = `
+      <div class="game-over">
+        WRONG! "${currentMedicine.name}" was
+        ${currentMedicine.real ? "REAL" : "FAKE"}.
+        <br><br>
+        Final Score: ${score}
+      </div>
+    `;
+
+    restartBtn.style.display = "inline-block";
+
+    document.querySelector(".real-btn").disabled = true;
+    document.querySelector(".fake-btn").disabled = true;
   }
+}
+
+function restartGame(){
+
+  score = 0;
+  scoreEl.textContent = score;
+
+  restartBtn.style.display = "none";
+
+  document.querySelector(".real-btn").disabled = false;
+  document.querySelector(".fake-btn").disabled = false;
 
   nextRound();
+}
+
+nextRound();
+
 </script>
 
 </body>
