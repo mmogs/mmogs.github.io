@@ -1,0 +1,331 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Real or Fake Medicine?</title>
+
+  <style>
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+      font-family:Arial, Helvetica, sans-serif;
+    }
+
+    body{
+      background:#111827;
+      color:white;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+      padding:20px;
+    }
+
+    .game{
+      width:100%;
+      max-width:700px;
+      background:#1f2937;
+      border-radius:20px;
+      padding:40px;
+      text-align:center;
+      box-shadow:0 0 30px rgba(0,0,0,0.4);
+    }
+
+    h1{
+      margin-bottom:10px;
+      font-size:2.5rem;
+    }
+
+    .subtitle{
+      color:#9ca3af;
+      margin-bottom:30px;
+    }
+
+    .score{
+      font-size:1.3rem;
+      margin-bottom:30px;
+      color:#34d399;
+    }
+
+    .medicine{
+      font-size:3rem;
+      font-weight:bold;
+      margin:40px 0;
+      word-break:break-word;
+      color:#f9fafb;
+    }
+
+    .buttons{
+      display:flex;
+      gap:20px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+
+    button{
+      border:none;
+      padding:16px 32px;
+      border-radius:12px;
+      font-size:1.2rem;
+      cursor:pointer;
+      transition:0.2s;
+      font-weight:bold;
+    }
+
+    .real-btn{
+      background:#10b981;
+      color:white;
+    }
+
+    .fake-btn{
+      background:#ef4444;
+      color:white;
+    }
+
+    button:hover{
+      transform:scale(1.05);
+    }
+
+    .message{
+      margin-top:25px;
+      font-size:1.2rem;
+      min-height:30px;
+    }
+
+    .restart{
+      margin-top:30px;
+      background:#3b82f6;
+      color:white;
+      display:none;
+    }
+
+    .game-over{
+      color:#f87171;
+      font-size:1.5rem;
+      margin-top:20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="game">
+  <h1>Real or Fake Medicine?</h1>
+  <div class="subtitle">
+    Guess whether the medicine name is REAL or FAKE.
+  </div>
+
+  <div class="score">
+    Score: <span id="score">0</span>
+  </div>
+
+  <div class="medicine" id="medicineName">
+    Loading...
+  </div>
+
+  <div class="buttons">
+    <button class="real-btn" onclick="guess(true)">REAL</button>
+    <button class="fake-btn" onclick="guess(false)">FAKE</button>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <button class="restart" id="restartBtn" onclick="restartGame()">
+    Restart Game
+  </button>
+</div>
+
+<script>
+  // =========================================
+  // REAL MEDICINE NAMES
+  // =========================================
+
+  const realMedicinesBase = [
+    "Ibuprofen","Acetaminophen","Amoxicillin","Metformin","Lisinopril",
+    "Atorvastatin","Amlodipine","Omeprazole","Azithromycin","Prednisone",
+    "Losartan","Gabapentin","Hydrochlorothiazide","Sertraline","Fluoxetine",
+    "Citalopram","Escitalopram","Clindamycin","Doxycycline","Tramadol",
+    "Warfarin","Insulin","Levothyroxine","Meloxicam","Naproxen",
+    "Cyclobenzaprine","Bupropion","Venlafaxine","Clonazepam","Diazepam",
+    "Alprazolam","Cetirizine","Loratadine","Fexofenadine","Montelukast",
+    "Zolpidem","Trazodone","Mirtazapine","Quetiapine","Olanzapine",
+    "Risperidone","Aripiprazole","Lamotrigine","Topiramate","Valacyclovir",
+    "Acyclovir","Oseltamivir","Cephalexin","Cefdinir","Ceftriaxone",
+    "Pantoprazole","Famotidine","Ranitidine","Carvedilol","Metoprolol",
+    "Propranolol","Spironolactone","Furosemide","Rosuvastatin","Simvastatin",
+    "Pravastatin","Clopidogrel","Aspirin","Nitroglycerin","Digoxin",
+    "Sildenafil","Tadalafil","Finasteride","Tamsulosin","Oxybutynin",
+    "Methotrexate","Hydroxychloroquine","Allopurinol","Colchicine",
+    "Tacrolimus","Cyclosporine","Morphine","Hydromorphone","Oxycodone",
+    "Codeine","Buprenorphine","Naloxone","Rivaroxaban","Apixaban",
+    "Duloxetine","Buspirone","Atomoxetine","Amphetamine","Methylphenidate",
+    "Semaglutide","Tirzepatide","Empagliflozin","Canagliflozin","Glipizide"
+  ];
+
+  // Expand to 500 realistic real medicine names
+  const realMedicines = [];
+
+  for(let i = 0; i < 5; i++){
+    realMedicinesBase.forEach(name => {
+      realMedicines.push(name);
+
+      // Add realistic variants
+      realMedicines.push(name + " XR");
+      realMedicines.push(name + " ER");
+      realMedicines.push(name + " Plus");
+      realMedicines.push(name + " Forte");
+    });
+  }
+
+  // Limit to 500
+  realMedicines.length = 500;
+
+  // =========================================
+  // FAKE MEDICINE NAME GENERATOR
+  // =========================================
+
+  const prefixes = [
+    "Zy","Vel","Nor","Tri","Xan","Lum","Dex","Corti","Neo","Astra",
+    "Vira","Lumi","Cryo","Mira","Zora","Phena","Rela","Tavo","Lexa","Omni",
+    "Cura","Nexa","Vexo","Reno","Ketra","Soma","Prax","Velo","Nuro","Cali"
+  ];
+
+  const middles = [
+    "flu","med","vex","dron","lax","vira","nex","zol","tan","cept",
+    "lume","vion","ther","cyl","phor","trax","niva","bex","mora","zine",
+    "trex","lora","vane","trex","fira","dexa","mune","cetra","vixa","lune"
+  ];
+
+  const suffixes = [
+    "line","zol","pril","mab","caine","dine","xate","tril","vex","drol",
+    "mycin","zine","tide","xol","bar","lex","cor","nate","vax","drine",
+    "cet","nium","dexa","mune","lide","vate","prox","trel","fex","sone"
+  ];
+
+  function generateFakeName() {
+    const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const m = middles[Math.floor(Math.random() * middles.length)];
+    const s = suffixes[Math.floor(Math.random() * suffixes.length)];
+
+    return p + m + s;
+  }
+
+  const fakeMedicines = [];
+
+  while(fakeMedicines.length < 500){
+    const fake = generateFakeName();
+
+    if(
+      !fakeMedicines.includes(fake) &&
+      !realMedicines.includes(fake)
+    ){
+      fakeMedicines.push(fake);
+    }
+  }
+
+  // =========================================
+  // GAME LOGIC
+  // =========================================
+
+  const allMedicines = [];
+
+  realMedicines.forEach(name => {
+    allMedicines.push({
+      name,
+      real: true
+    });
+  });
+
+  fakeMedicines.forEach(name => {
+    allMedicines.push({
+      name,
+      real: false
+    });
+  });
+
+  let score = 0;
+  let currentMedicine = null;
+  let usedNames = [];
+
+  const medicineEl = document.getElementById("medicineName");
+  const scoreEl = document.getElementById("score");
+  const messageEl = document.getElementById("message");
+  const restartBtn = document.getElementById("restartBtn");
+
+  function getRandomMedicine() {
+
+    // reset used names if all used
+    if(usedNames.length >= allMedicines.length){
+      usedNames = [];
+    }
+
+    let medicine;
+
+    do{
+      medicine = allMedicines[
+        Math.floor(Math.random() * allMedicines.length)
+      ];
+    } while(usedNames.includes(medicine.name));
+
+    usedNames.push(medicine.name);
+
+    return medicine;
+  }
+
+  function nextRound(){
+    currentMedicine = getRandomMedicine();
+    medicineEl.textContent = currentMedicine.name;
+    messageEl.textContent = "";
+  }
+
+  function guess(playerGuess){
+
+    if(playerGuess === currentMedicine.real){
+
+      score++;
+      scoreEl.textContent = score;
+
+      messageEl.textContent = "Correct!";
+      messageEl.style.color = "#34d399";
+
+      nextRound();
+
+    } else {
+
+      medicineEl.textContent = currentMedicine.name;
+
+      messageEl.innerHTML = `
+        <div class="game-over">
+          WRONG! "${currentMedicine.name}" was
+          ${currentMedicine.real ? "REAL" : "FAKE"}.
+          <br><br>
+          Final Score: ${score}
+        </div>
+      `;
+
+      restartBtn.style.display = "inline-block";
+
+      // disable buttons
+      document.querySelector(".real-btn").disabled = true;
+      document.querySelector(".fake-btn").disabled = true;
+    }
+  }
+
+  function restartGame(){
+    score = 0;
+    scoreEl.textContent = score;
+
+    restartBtn.style.display = "none";
+
+    document.querySelector(".real-btn").disabled = false;
+    document.querySelector(".fake-btn").disabled = false;
+
+    nextRound();
+  }
+
+  nextRound();
+</script>
+
+</body>
+</html>
