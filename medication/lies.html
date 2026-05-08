@@ -23,27 +23,13 @@ body{
   min-height:100vh;
   overflow:hidden;
   color:#3b0764;
-  position:relative;
 }
-
-/* BLOBS */
-.blob{
-  position:absolute;
-  border-radius:50%;
-  filter:blur(80px);
-  opacity:0.25;
-  z-index:0;
-}
-
-.blob1{width:400px;height:400px;background:#c084fc;top:-100px;left:-100px;}
-.blob2{width:350px;height:350px;background:#9333ea;bottom:-100px;right:-100px;}
-.blob3{width:250px;height:250px;background:#d8b4fe;top:40%;left:50%;transform:translateX(-50%);}
 
 /* HEADER */
 header{
   padding:40px 60px;
-  position:relative;
   z-index:2;
+  position:relative;
 }
 
 header h1{
@@ -53,11 +39,11 @@ header h1{
 
 /* GAME */
 .game-area{
-  position:relative;
-  z-index:2;
   display:flex;
   justify-content:center;
-  padding:40px;
+  padding:30px;
+  position:relative;
+  z-index:2;
 }
 
 .game-card{
@@ -74,9 +60,9 @@ header h1{
 
 .score{
   font-size:2rem;
-  font-weight:bold;
   color:#9333ea;
   margin-bottom:40px;
+  font-weight:bold;
 }
 
 .medicine{
@@ -89,12 +75,12 @@ header h1{
 
 /* BUTTONS */
 button{
-  border:none;
-  padding:22px 50px;
-  border-radius:18px;
-  cursor:pointer;
-  font-size:1.3rem;
+  padding:20px 45px;
+  font-size:1.2rem;
   font-weight:bold;
+  border-radius:16px;
+  border:none;
+  cursor:pointer;
 }
 
 .real-btn{background:#9333ea;color:white;}
@@ -103,7 +89,7 @@ button{
 .restart{
   background:#6b21a8;
   color:white;
-  margin-top:35px;
+  margin-top:30px;
   display:none;
 }
 
@@ -115,34 +101,27 @@ button{
   border-radius:999px;
   pointer-events:none;
   z-index:9999;
-  overflow:hidden;
   box-shadow:0 8px 20px rgba(0,0,0,0.2);
   transform-origin:center;
 }
 
-.capsule::before,
-.capsule::after{
-  content:"";
+/* PARTICLES */
+.particle{
   position:absolute;
-  top:0;
-  width:50%;
-  height:100%;
+  font-size:2rem;
+  pointer-events:none;
+  animation:burst 1.3s forwards ease-out;
 }
 
-.capsule::after{
-  right:0;
-  background:white;
-  opacity:0.25;
+@keyframes burst{
+  0%{opacity:1;transform:translate(0,0) scale(1);}
+  100%{opacity:0;transform:translate(var(--x),var(--y)) scale(0.3);}
 }
 
 </style>
 </head>
 
 <body>
-
-<div class="blob blob1"></div>
-<div class="blob blob2"></div>
-<div class="blob blob3"></div>
 
 <header>
   <h1>Real or Fake Medicine?</h1>
@@ -160,27 +139,32 @@ button{
     <button class="fake-btn" onclick="guess(false)">FAKE</button>
   </div>
 
-  <div class="message" id="message"></div>
+  <div id="message"></div>
 
-  <button class="restart" id="restartBtn" onclick="restartGame()">Restart Game</button>
+  <button class="restart" id="restartBtn" onclick="restartGame()">Restart</button>
 
 </div>
 </div>
 
 <script>
 
-/* REAL + FAKE DATA (unchanged for brevity here in behavior) */
+/* =========================
+   DATA
+========================= */
 
-const realMedicines = ["Abilify","Aciphex","Actos","Adderall","Advair","Aleve","Allegra","Altace","Ambien","Amoxil"];
+const realMedicines = [
+"Ibuprofen","Amoxicillin","Metformin","Lisinopril","Atorvastatin",
+"Sertraline","Omeprazole","Amlodipine","Azithromycin","Gabapentin"
+];
 
-const prefixes=["Zy","Vel","Nor","Tri","Xan","Lum","Dex","Neo","Astra","Vira"];
-const middles=["lume","vex","dren","fira","mora","zetra","laxon","vira"];
-const suffixes=["pril","mab","zine","drol","mycin","tide","line","zol"];
+const prefixes=["Zy","Vel","Nor","Tri","Xan","Lum","Dex","Neo","Vira","Astra"];
+const mids=["lume","vex","dren","mora","vira","cetra","zol","trex"];
+const suf=["pril","mab","zine","mycin","drol","tide","line","zol"];
 
 function fake(){
   return prefixes[Math.random()*prefixes.length|0]
-    + middles[Math.random()*middles.length|0]
-    + suffixes[Math.random()*suffixes.length|0];
+    + mids[Math.random()*mids.length|0]
+    + suf[Math.random()*suf.length|0];
 }
 
 const fakeMedicines=[];
@@ -193,92 +177,112 @@ const all=[];
 realMedicines.forEach(n=>all.push({n, r:true}));
 fakeMedicines.forEach(n=>all.push({n, r:false}));
 
+/* =========================
+   STATE
+========================= */
+
 let score=0;
 let current;
 
 const scoreEl=document.getElementById("score");
-const medEl=document.getElementById("medicineName");
+const med=document.getElementById("medicineName");
 const msg=document.getElementById("message");
 const restart=document.getElementById("restartBtn");
 
-const capsules=[];
-
 /* =========================
-   PHYSICS CAPSULES
+   PARTICLES
 ========================= */
 
-function spawnCapsule(){
+function particles(){
+
+  const icons=["💊","🧪","💉"];
+
+  for(let i=0;i<18;i++){
+
+    const p=document.createElement("div");
+    p.className="particle";
+    p.textContent=icons[Math.random()*icons.length|0];
+
+    p.style.left="50%";
+    p.style.top="50%";
+
+    p.style.setProperty("--x",(Math.random()*600-300)+"px");
+    p.style.setProperty("--y",(Math.random()*600-300)+"px");
+
+    document.body.appendChild(p);
+
+    setTimeout(()=>p.remove(),1300);
+  }
+}
+
+/* =========================
+   CAPSULE PHYSICS
+========================= */
+
+const caps=[];
+
+function capsule(){
 
   const el=document.createElement("div");
   el.className="capsule";
 
-  const colors=["#9333ea","#c084fc","#ec4899","#06b6d4","#22c55e","#f59e0b"];
-  const c1=colors[Math.random()*colors.length|0];
-  const c2=colors[Math.random()*colors.length|0];
+  const c1=["#9333ea","#c084fc","#06b6d4","#22c55e","#f59e0b"][Math.random()*5|0];
+  const c2=["#ec4899","#8b5cf6","#14b8a6","#84cc16","#f97316"][Math.random()*5|0];
 
   el.style.background=`linear-gradient(to right, ${c1}, ${c2})`;
 
   const obj={
     el,
     x:Math.random()*window.innerWidth,
-    y:-40,
-    vx:(Math.random()-0.5)*3,
+    y:-50,
+    vx:(Math.random()-0.5)*4,
     vy:0,
     r:Math.random()*360,
     vr:(Math.random()-0.5)*8,
     w:70,
     h:30,
-    resting:false
+    rest:false
   };
 
+  caps.push(obj);
   document.body.appendChild(el);
-  capsules.push(obj);
 
-  if(!window.running){
-    window.running=true;
+  if(!window.run){
+    window.run=true;
     loop();
   }
 }
 
-/* FIXED PHYSICS LOOP */
 function loop(){
 
   const floor=window.innerHeight-10;
   const g=0.45;
 
-  capsules.forEach(c=>{
+  caps.forEach(c=>{
 
-    if(c.resting) return;
+    if(c.rest) return;
 
     c.vy+=g;
     c.x+=c.vx;
     c.y+=c.vy;
     c.r+=c.vr;
 
-    /* FLOOR COLLISION (NO CLIPPING) */
-    if(c.y+ c.h/2 >= floor){
-      c.y=floor - c.h/2;
-      c.vy*=-0.3;
+    if(c.y+c.h/2>=floor){
+      c.y=floor-c.h/2;
+      c.vy*=-0.25;
       c.vx*=0.95;
 
       if(Math.abs(c.vy)<0.5){
         c.vy=0;
-        c.r = Math.round(c.r/180)*180;
 
         if(Math.abs(c.vx)<0.1){
           c.vx=0;
           c.vr=0;
-          c.resting=true;
+          c.rest=true;
         }
       }
     }
 
-    /* WALLS */
-    if(c.x<0||c.x>window.innerWidth){
-      c.vx*=-0.6;
-    }
-
-    /* APPLY */
     c.el.style.left=(c.x-c.w/2)+"px";
     c.el.style.top=(c.y-c.h/2)+"px";
     c.el.style.transform=`rotate(${c.r}deg)`;
@@ -287,27 +291,34 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
-/* ========================= */
+/* =========================
+   GAME
+========================= */
 
 function next(){
   current=all[Math.random()*all.length|0];
-  medEl.textContent=current.n;
+  med.textContent=current.n;
 }
 
 function guess(v){
 
   if(v===current.r){
+
     score++;
     scoreEl.textContent=score;
+
     msg.textContent="Correct!";
-    spawnCapsule();
-    setTimeout(next,200);
+    particles();
+    capsule();
+
+    next();
+
   } else {
 
-    capsules.forEach(c=>c.el.remove());
-    capsules.length=0;
+    caps.forEach(c=>c.el.remove());
+    caps.length=0;
 
-    msg.innerHTML=`Wrong!<br><br>Score: ${score}`;
+    msg.innerHTML=`Wrong!<br>Score: ${score}`;
     restart.style.display="inline-block";
   }
 }
