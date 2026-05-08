@@ -644,12 +644,17 @@ function spawnCapsule(){
 function physicsLoop(){
 
   const gravity = 0.45;
-  const floor = window.innerHeight - 35;
+  const floor = window.innerHeight - 10;
 
   activeCapsules.forEach((a,index)=>{
 
     if(!a.resting){
-
+      if(a.resting){
+  a.y = floor - a.height;
+  a.vy = 0;
+  a.vx = 0;
+  a.vr = 0;
+}
       // gravity
       a.vy += gravity;
 
@@ -673,7 +678,9 @@ function physicsLoop(){
       }
 
       // floor bounce
-      if(a.y >= floor){
+      if(a.y >= floor - a.height){
+
+  a.y = floor - a.height;
 
         a.y = floor;
 
@@ -691,7 +698,22 @@ function physicsLoop(){
           a.vy = 0;
 
           // flatten naturally
-          a.rotation = Math.round(a.rotation / 180) * 180;
+         if(Math.abs(a.vy) < 0.8){
+
+  a.vy = 0;
+
+  // gently rotate toward nearest flat angle instead of snapping
+  const target = Math.round(a.rotation / 180) * 180;
+
+  a.rotation += (target - a.rotation) * 0.08;
+
+  if(Math.abs(a.vx) < 0.1 && Math.abs(a.vr) < 0.2){
+
+    a.vx = 0;
+    a.vr = 0;
+    a.resting = true;
+  }
+}
 
           // resting state
           if(Math.abs(a.vx) < 0.15){
