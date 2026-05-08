@@ -697,17 +697,19 @@ function guess(choice){
 
   } else {
 
+    // REMOVE ALL CAPSULES
+    activeCapsules.forEach(c=>{
+      c.remove();
+    });
+
+    activeCapsules.length = 0;
+
     messageEl.innerHTML = `
       <div class="game-over">
         WRONG! "${currentMedicine.name}" was
         ${currentMedicine.real ? "REAL" : "FAKE"}.
         <br><br>
         Final Score: ${score}
-        activeCapsules.forEach(c=>{ 
-        c.remove();
-});
-
-activeCapsules.length = 0;
       </div>
     `;
 
