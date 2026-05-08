@@ -15,14 +15,17 @@ CHANGES MADE:
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Real or Fake Medicine?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 
 *{
   margin:0;
   padding:0;
   box-sizing:border-box;
-  font-family:Arial, Helvetica, sans-serif;
+  font-family:'Inter', sans-serif;
 }
 
 body{
@@ -150,6 +153,27 @@ MEDICINE NAME
   word-break:break-word;
   color:#2e1065;
   letter-spacing:2px;
+
+  opacity:1;
+  transform:translateY(0px) scale(1);
+
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    filter 0.25s ease;
+
+  filter:blur(0px);
+}
+.medicine.change-out{
+  opacity:0;
+  transform:translateY(-20px) scale(0.96);
+  filter:blur(6px);
+}
+
+.medicine.change-in{
+  opacity:1;
+  transform:translateY(0px) scale(1);
+  filter:blur(0px);
 }
 
 /* ======================================
@@ -456,13 +480,26 @@ const restartBtn = document.getElementById("restartBtn");
 
 function nextRound(){
 
-  currentMedicine =
-    allMedicines[
-      Math.floor(Math.random()*allMedicines.length)
-    ];
+  medicineEl.classList.add("change-out");
 
-  medicineEl.textContent = currentMedicine.name;
-  messageEl.textContent = "";
+  setTimeout(()=>{
+
+    currentMedicine =
+      allMedicines[
+        Math.floor(Math.random()*allMedicines.length)
+      ];
+
+    medicineEl.textContent = currentMedicine.name;
+
+    medicineEl.classList.remove("change-out");
+
+    medicineEl.classList.add("change-in");
+
+    setTimeout(()=>{
+      medicineEl.classList.remove("change-in");
+    },250);
+
+  },250);
 }
 
 // =====================================
