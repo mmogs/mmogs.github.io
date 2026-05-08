@@ -585,7 +585,6 @@ function spawnCapsule(){
 
   capsule.className = "capsule";
 
-  // Random colors
   const colors = [
     "#9333ea",
     "#c084fc",
@@ -606,71 +605,159 @@ function spawnCapsule(){
   capsule.style.background =
     `linear-gradient(to right, ${color1} 50%, ${color2} 50%)`;
 
-  // Random spawn position
-  let x = Math.random() * (window.innerWidth - 100);
+  // physics object
+  const obj = {
 
-  let y = -100;
+    el:capsule,
 
-  // Physics
-  let velocityY = 0;
-  let velocityX = (Math.random() - 0.5) * 6;
+    x:Math.random() * (window.innerWidth - 100),
 
-  let rotation = Math.random() * 360;
-  let rotationSpeed = (Math.random() - 0.5) * 12;
+    y:-100,
 
-  const gravity = 0.45;
-  const floor = window.innerHeight - 40;
+    width:70,
+    height:30,
 
-  capsule.style.left = x + "px";
-  capsule.style.top = y + "px";
+    vx:(Math.random()-0.5) * 4,
+    vy:0,
+
+    rotation:Math.random()*360,
+
+    vr:(Math.random()-0.5) * 10,
+
+    resting:false
+  };
+
+  capsule.style.left = obj.x + "px";
+  capsule.style.top = obj.y + "px";
 
   document.body.appendChild(capsule);
 
-  activeCapsules.push(capsule);
+  activeCapsules.push(obj);
 
-  function animate(){
+  if(!window.physicsRunning){
 
-    velocityY += gravity;
+    window.physicsRunning = true;
 
-    y += velocityY;
-    x += velocityX;
-
-    rotation += rotationSpeed;
-
-    // Bounce physics
-    if(y > floor){
-
-      y = floor;
-
-      velocityY *= -0.55;
-
-      // Stop tiny bouncing
-      if(Math.abs(velocityY) < 1){
-        velocityY = 0;
-      }
-    }
-
-    // wall bounce
-    if(x < 0 || x > window.innerWidth - 70){
-      velocityX *= -1;
-    }
-
-    capsule.style.top = y + "px";
-    capsule.style.left = x + "px";
-
-    capsule.style.transform =
-      `rotate(${rotation}deg)`;
-
-    // Continue animation
-    if(
-      y < floor ||
-      Math.abs(velocityY) > 0.2
-    ){
-      requestAnimationFrame(animate);
-    }
+    physicsLoop();
   }
+}
+function physicsLoop(){
 
-  animate();
+  const gravity = 0.45;
+  const floor = window.innerHeight - 35;
+
+  activeCapsules.forEach((a,index)=>{
+
+    if(!a.resting){
+
+      // gravity
+      a.vy += gravity;
+
+      // movement
+      a.x += a.vx;
+      a.y += a.vy;
+
+      a.rotation += a.vr;
+
+      // wall bounce
+      if(a.x <= 0){
+
+        a.x = 0;
+        a.vx *= -0.6;
+      }
+
+      if(a.x >= window.innerWidth - a.width){
+
+        a.x = window.innerWidth - a.width;
+        a.vx *= -0.6;
+      }
+
+      // floor bounce
+      if(a.y >= floor){
+
+        a.y = floor;
+
+        a.vy *= -0.35;
+
+        // friction
+        a.vx *= 0.96;
+
+        // gradually flatten
+        a.rotation *= 0.85;
+
+        // settle flat
+        if(Math.abs(a.vy) < 1){
+
+          a.vy = 0;
+
+          // flatten naturally
+          a.rotation = Math.round(a.rotation / 180) * 180;
+
+          // resting state
+          if(Math.abs(a.vx) < 0.15){
+
+            a.vx = 0;
+            a.vr = 0;
+
+            a.resting = true;
+          }
+        }
+      }
+
+      // capsule-to-capsule collisions
+      activeCapsules.forEach((b,bIndex)=>{
+
+        if(index === bIndex) return;
+
+        const dx = (a.x + a.width/2) - (b.x + b.width/2);
+        const dy = (a.y + a.height/2) - (b.y + b.height/2);
+
+        const distance = Math.sqrt(dx*dx + dy*dy);
+
+        const minDistance = 45;
+
+        if(distance < minDistance){
+
+          const angle = Math.atan2(dy,dx);
+
+          const force = (minDistance - distance) * 0.08;
+
+          const pushX = Math.cos(angle) * force;
+          const pushY = Math.sin(angle) * force;
+
+          a.vx += pushX;
+          a.vy += pushY;
+
+          b.vx -= pushX;
+          b.vy -= pushY;
+
+          // slight rolling rotation
+          a.vr += pushX * 2;
+          b.vr -= pushX * 2;
+
+          // separate capsules
+          a.x += pushX;
+          a.y += pushY;
+
+          b.x -= pushX;
+          b.y -= pushY;
+
+          // wake resting capsules
+          a.resting = false;
+          b.resting = false;
+        }
+      });
+
+      // apply transform
+      a.el.style.left = a.x + "px";
+      a.el.style.top = a.y + "px";
+
+      a.el.style.transform =
+        `rotate(${a.rotation}deg)`;
+    }
+  });
+
+  requestAnimationFrame(physicsLoop);
 }
 
 // =====================================
@@ -699,10 +786,10 @@ function guess(choice){
 
     // REMOVE ALL CAPSULES
     activeCapsules.forEach(c=>{
-      c.remove();
-    });
+  c.el.remove();
+});
 
-    activeCapsules.length = 0;
+activeCapsules.length = 0;
 
     messageEl.innerHTML = `
       <div class="game-over">
