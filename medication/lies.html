@@ -247,6 +247,42 @@ PARTICLES
   animation:burst 1.5s forwards ease-out;
   z-index:100;
 }
+.capsule{
+  position:fixed;
+  width:70px;
+  height:30px;
+
+  border-radius:999px;
+
+  z-index:9999;
+  pointer-events:none;
+
+  overflow:hidden;
+
+  box-shadow:
+    0 8px 20px rgba(0,0,0,0.2);
+
+  transform-origin:center;
+}
+
+.capsule::before,
+.capsule::after{
+  content:"";
+  position:absolute;
+  top:0;
+  width:50%;
+  height:100%;
+}
+
+.capsule::before{
+  left:0;
+}
+
+.capsule::after{
+  right:0;
+  background:white;
+  opacity:0.25;
+}
 
 @keyframes burst{
 
@@ -434,6 +470,7 @@ function generateFakeMedicine(){
 }
 
 const fakeMedicines = [];
+const activeCapsules = [];
 
 while(fakeMedicines.length < 500){
 
@@ -542,6 +579,99 @@ function spawnParticles(){
     },1500);
   }
 }
+function spawnCapsule(){
+
+  const capsule = document.createElement("div");
+
+  capsule.className = "capsule";
+
+  // Random colors
+  const colors = [
+    "#9333ea",
+    "#c084fc",
+    "#ec4899",
+    "#8b5cf6",
+    "#06b6d4",
+    "#f43f5e",
+    "#22c55e",
+    "#f59e0b"
+  ];
+
+  const color1 =
+    colors[Math.floor(Math.random()*colors.length)];
+
+  const color2 =
+    colors[Math.floor(Math.random()*colors.length)];
+
+  capsule.style.background =
+    `linear-gradient(to right, ${color1} 50%, ${color2} 50%)`;
+
+  // Random spawn position
+  let x = Math.random() * (window.innerWidth - 100);
+
+  let y = -100;
+
+  // Physics
+  let velocityY = 0;
+  let velocityX = (Math.random() - 0.5) * 6;
+
+  let rotation = Math.random() * 360;
+  let rotationSpeed = (Math.random() - 0.5) * 12;
+
+  const gravity = 0.45;
+  const floor = window.innerHeight - 40;
+
+  capsule.style.left = x + "px";
+  capsule.style.top = y + "px";
+
+  document.body.appendChild(capsule);
+
+  activeCapsules.push(capsule);
+
+  function animate(){
+
+    velocityY += gravity;
+
+    y += velocityY;
+    x += velocityX;
+
+    rotation += rotationSpeed;
+
+    // Bounce physics
+    if(y > floor){
+
+      y = floor;
+
+      velocityY *= -0.55;
+
+      // Stop tiny bouncing
+      if(Math.abs(velocityY) < 1){
+        velocityY = 0;
+      }
+    }
+
+    // wall bounce
+    if(x < 0 || x > window.innerWidth - 70){
+      velocityX *= -1;
+    }
+
+    capsule.style.top = y + "px";
+    capsule.style.left = x + "px";
+
+    capsule.style.transform =
+      `rotate(${rotation}deg)`;
+
+    // Continue animation
+    if(
+      y < floor ||
+      Math.abs(velocityY) > 0.2
+    ){
+      requestAnimationFrame(animate);
+    }
+  }
+
+  animate();
+}
 
 // =====================================
 // GUESS
@@ -559,6 +689,7 @@ function guess(choice){
     messageEl.style.color = "#16a34a";
 
     spawnParticles();
+    spawnCapsule();
 
     setTimeout(()=>{
       nextRound();
@@ -572,6 +703,11 @@ function guess(choice){
         ${currentMedicine.real ? "REAL" : "FAKE"}.
         <br><br>
         Final Score: ${score}
+        activeCapsules.forEach(c=>{ 
+        c.remove();
+});
+
+activeCapsules.length = 0;
       </div>
     `;
 
