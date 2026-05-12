@@ -377,22 +377,88 @@ const suffixes = [
 
 function generateFakeMedicine(){
 
-  const p = prefixes[Math.floor(Math.random()*prefixes.length)];
-  const m = middles[Math.floor(Math.random()*middles.length)];
-  const s = suffixes[Math.floor(Math.random()*suffixes.length)];
-
-  return p + m + s;
+ function random(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
 }
 
-const fakeMedicines = [];
+const starts = [
+"Zy","Vel","Nor","Tri","Xan","Lum","Dex","Neo","Astra","Vira",
+"Mira","Ketra","Cura","Omni","Nexa","Rela","Vexo","Zora","Cryo","Prax",
+"Qel","Brin","Tov","Xel","Sky","Vor","Dral","Quin","Trel","Myr"
+];
 
-while(fakeMedicines.length < 500){
+const mids = [
+"la","ve","dro","mi","xa","tri","zol","fen","cor","dex",
+"nex","tra","vira","dil","mor","zan","quil","rex","phar","lix"
+];
 
-  const fake = generateFakeMedicine();
+const ends = [
+"pril","mab","zine","drol","mycin","tide","sone","line",
+"xate","tril","dine","zol","fex","bar","vax","nium",
+"trel","prox","cor","stat","vir","lam","tan","lex"
+];
 
-  if(!fakeMedicines.includes(fake)){
-    fakeMedicines.push(fake);
+function generateFakeMedicine(){
+
+  const style = Math.floor(Math.random()*5);
+
+  // SHORT
+  if(style === 0){
+
+    return (
+      random(starts) +
+      random(ends)
+    );
   }
+
+  // MEDIUM
+  if(style === 1){
+
+    return (
+      random(starts) +
+      random(mids) +
+      random(ends)
+    );
+  }
+
+  // LONG
+  if(style === 2){
+
+    return (
+      random(starts) +
+      random(mids) +
+      random(mids) +
+      random(ends)
+    );
+  }
+
+  // WEIRD/REALISTIC
+  if(style === 3){
+
+    return (
+      random(starts) +
+      random(mids) +
+      random(["gli","pha","ntra","zlo","qui","tre","shi"]) +
+      random(ends)
+    );
+  }
+
+  // VERY SHORT / BRAND STYLE
+  return (
+    random([
+      "Xyrel",
+      "Bravix",
+      "Trevia",
+      "Qynex",
+      "Virel",
+      "Zoltra",
+      "Myrlex",
+      "Skyriva",
+      "Velcor",
+      "Praxil"
+    ])
+  );
+}
 }
 
 /* =========================
