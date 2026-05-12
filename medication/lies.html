@@ -27,7 +27,7 @@ body{
   position:relative;
 }
 
-/* BACKGROUND BLOBS */
+/* BACKGROUND */
 
 .blob{
   position:absolute;
@@ -77,7 +77,7 @@ header h1{
   margin-bottom:10px;
 }
 
-/* GAME AREA */
+/* GAME */
 
 .game-area{
   position:relative;
@@ -309,9 +309,9 @@ button:hover{
 
 <script>
 
-/* =========================
-   REAL MEDICINES
-========================= */
+/* =====================================
+   500 REAL MEDICINES
+===================================== */
 
 const realMedicines = [
 "Abilify","Aciphex","Actos","Adderall","Advair","Aleve","Allegra","Altace","Ambien","Amoxil",
@@ -354,116 +354,88 @@ const realMedicines = [
 "Methocarbamol","Methotrexate","Methylphenidate","Metoclopramide","Metolazone","Metoprolol","Metronidazole","Midodrine","Minocycline","Mirtazapine",
 "Misoprostol","Modafinil","Montelukast","Morphine","Moxifloxacin","Mupirocin","Mycophenolate","Nabumetone","Nadolol","Naloxone",
 "Naltrexone","Naproxen","Naratriptan","Nebivolol","Nifedipine","Nitrofurantoin","Nitroglycerin","Nortriptyline","Nystatin","Olanzapine",
-"Olmesartan","Ondansetron","Oseltamivir","Oxybutynin","Oxycodone","Ozempic","Paliperidone","Pantoprazole","Paroxetine","Pegfilgrastim"];
-
-/* =========================
-   FAKE MEDICINES
-========================= */
-
-const prefixes = [
-"Zy","Vel","Nor","Tri","Xan","Lum","Dex","Neo","Astra","Vira",
-"Mira","Ketra","Cura","Omni","Nexa","Rela","Vexo","Zora","Cryo","Prax"
+"Olmesartan","Ondansetron","Oseltamivir","Oxybutynin","Oxycodone","Ozempic","Paliperidone","Pantoprazole","Paroxetine","Pegfilgrastim"
 ];
 
-const middles = [
-"lume","vex","dren","fira","mora","zetra","laxon","vira","nexa","cetra",
-"zol","trex","vion","dara","phena","trixa","mune","cora","vexa","dorin"
-];
+/* =====================================
+   BETTER FAKE GENERATION
+===================================== */
 
-const suffixes = [
-"pril","mab","zine","drol","mycin","vex","tide","sone","line","xate",
-"tril","dine","zol","fex","bar","vax","nium","trel","prox","cor"
-];
-
-function generateFakeMedicine(){
-
- function random(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
+function random(arr){
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 const starts = [
-"Zy","Vel","Nor","Tri","Xan","Lum","Dex","Neo","Astra","Vira",
-"Mira","Ketra","Cura","Omni","Nexa","Rela","Vexo","Zora","Cryo","Prax",
-"Qel","Brin","Tov","Xel","Sky","Vor","Dral","Quin","Trel","Myr"
+  "Zy","Vel","Nor","Tri","Xan","Lum","Dex","Neo","Astra","Vira",
+  "Mira","Ketra","Cura","Omni","Nexa","Rela","Vexo","Zora","Cryo","Prax",
+  "Qel","Brin","Tov","Xel","Sky","Vor","Dral","Quin","Trel","Myr"
 ];
 
 const mids = [
-"la","ve","dro","mi","xa","tri","zol","fen","cor","dex",
-"nex","tra","vira","dil","mor","zan","quil","rex","phar","lix"
+  "la","ve","dro","mi","xa","tri","zol","fen","cor","dex",
+  "nex","tra","vira","dil","mor","zan","quil","rex","phar","lix"
 ];
 
 const ends = [
-"pril","mab","zine","drol","mycin","tide","sone","line",
-"xate","tril","dine","zol","fex","bar","vax","nium",
-"trel","prox","cor","stat","vir","lam","tan","lex"
+  "pril","mab","zine","drol","mycin","tide","sone","line",
+  "xate","tril","dine","zol","fex","bar","vax","nium",
+  "trel","prox","cor","stat","vir","lam","tan","lex"
+];
+
+const brandStyle = [
+  "Xyrel","Bravix","Trevia","Qynex","Virel",
+  "Zoltra","Myrlex","Skyriva","Velcor","Praxil"
+];
+
+const weirdBits = [
+  "gli","pha","ntra","zlo","qui","tre","shi"
 ];
 
 function generateFakeMedicine(){
 
-  const style = Math.floor(Math.random()*5);
+  const style = Math.floor(Math.random() * 5);
 
-  // SHORT
   if(style === 0){
-
-    return (
-      random(starts) +
-      random(ends)
-    );
+    return random(starts) + random(ends);
   }
 
-  // MEDIUM
   if(style === 1){
-
-    return (
-      random(starts) +
-      random(mids) +
-      random(ends)
-    );
+    return random(starts) +
+           random(mids) +
+           random(ends);
   }
 
-  // LONG
   if(style === 2){
-
-    return (
-      random(starts) +
-      random(mids) +
-      random(mids) +
-      random(ends)
-    );
+    return random(starts) +
+           random(mids) +
+           random(mids) +
+           random(ends);
   }
 
-  // WEIRD/REALISTIC
   if(style === 3){
-
-    return (
-      random(starts) +
-      random(mids) +
-      random(["gli","pha","ntra","zlo","qui","tre","shi"]) +
-      random(ends)
-    );
+    return random(starts) +
+           random(mids) +
+           random(weirdBits) +
+           random(ends);
   }
 
-  // VERY SHORT / BRAND STYLE
-  return (
-    random([
-      "Xyrel",
-      "Bravix",
-      "Trevia",
-      "Qynex",
-      "Virel",
-      "Zoltra",
-      "Myrlex",
-      "Skyriva",
-      "Velcor",
-      "Praxil"
-    ])
-  );
-}
+  return random(brandStyle);
 }
 
-/* =========================
+const fakeMedicines = [];
+
+while(fakeMedicines.length < 500){
+
+  const fake = generateFakeMedicine();
+
+  if(!fakeMedicines.includes(fake)){
+    fakeMedicines.push(fake);
+  }
+}
+
+/* =====================================
    GAME STATE
-========================= */
+===================================== */
 
 let score = 0;
 let currentMedicine;
@@ -473,9 +445,9 @@ const scoreEl = document.getElementById("score");
 const messageEl = document.getElementById("message");
 const restartBtn = document.getElementById("restartBtn");
 
-/* =========================
+/* =====================================
    NEXT ROUND
-========================= */
+===================================== */
 
 function nextRound(){
 
@@ -517,9 +489,9 @@ function nextRound(){
   },250);
 }
 
-/* =========================
+/* =====================================
    PARTICLES
-========================= */
+===================================== */
 
 const particleIcons = ["💊","🧪","💉","🩺","🩹"];
 
@@ -560,9 +532,9 @@ function spawnParticles(){
   }
 }
 
-/* =========================
+/* =====================================
    GUESS
-========================= */
+===================================== */
 
 function guess(choice){
 
@@ -599,9 +571,9 @@ function guess(choice){
   }
 }
 
-/* =========================
+/* =====================================
    RESTART
-========================= */
+===================================== */
 
 function restartGame(){
 
